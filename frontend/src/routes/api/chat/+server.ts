@@ -1,14 +1,20 @@
 import { json, error } from '@sveltejs/kit';
 import Anthropic from '@anthropic-ai/sdk';
-import { ANTHROPIC_API_KEY } from '$env/static/private';
 import type { RequestHandler } from './$types';
+import { env } from '$env/dynamic/private';
 
-const anthropic = new Anthropic({
-	apiKey: ANTHROPIC_API_KEY
-});
+// API key is optional for demo mode - will be configured in Phase 2
+const anthropic = env.ANTHROPIC_API_KEY ? new Anthropic({
+	apiKey: env.ANTHROPIC_API_KEY
+}) : null;
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
+		// Return error if API key not configured (demo mode)
+		if (!anthropic) {
+			throw error(501, 'API endpoint not configured. Currently running in demo mode.');
+		}
+
 		const { messages } = await request.json();
 
 		if (!messages || !Array.isArray(messages)) {
