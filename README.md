@@ -119,6 +119,97 @@ ANTHROPIC_API_KEY=your-key
 
 ---
 
+## 🗄️ Database Setup (Phase 2)
+
+LOIS includes a complete database schema and seed data generator for Supabase PostgreSQL.
+
+### Quick Database Setup
+
+```bash
+# 1. Create Supabase project at https://supabase.com
+
+# 2. Run schema to create tables
+# Go to Supabase SQL Editor and run: database/schema.sql
+
+# 3. Generate realistic seed data
+cd database/seed
+npm install
+cp .env.example .env
+# Edit .env with your Supabase credentials
+
+# 4. Seed the database
+npm run seed
+
+# ✅ Database populated with 6,000-8,000 records!
+```
+
+### What Gets Generated
+
+The seed system creates realistic legal case management data:
+
+- **150-200 Projects** (legal cases) with case-specific custom fields
+  - Personal Injury (40%) - medical expenses, injury type, accident details
+  - Corporate (25%) - contract values, transaction types
+  - Family Law (15%) - marital assets, custody details
+  - Employment (10%) - damages sought, termination info
+  - Real Estate (10%) - property values, square footage
+
+- **300-400 Contacts** (attorneys, clients, witnesses, experts)
+  - Linked to projects with specific roles
+  - Full contact information and specialties
+
+- **800-1,000 Documents** with realistic mock content
+  - Pleadings, discovery, correspondence, evidence
+  - Full-text searchable legal documents
+
+- **500-700 Calendar Entries**
+  - Court dates, depositions, deadlines, meetings
+
+- **600-800 Notes** & **400-600 Tasks**
+  - Case notes, strategy, meeting notes
+  - To-dos, follow-ups, reviews with due dates
+
+- **2,000-3,000 Time Entries** with billable hours
+  - Activity types, hourly rates, descriptions
+  - Realistic attorney billing patterns
+
+- **300-500 Expenses** & **150-250 Invoices**
+  - Court fees, expert fees, travel expenses
+  - Invoice generation with payment tracking
+
+### Database Documentation
+
+- **[database/schema.sql](database/schema.sql)** - Complete PostgreSQL schema with 9 entities
+- **[database/seed/README.md](database/seed/README.md)** - Detailed seed data documentation
+- **[DATA_STORE_PLAN.md](DATA_STORE_PLAN.md)** - Comprehensive database architecture plan
+
+### Sample Queries
+
+Test your database with these queries:
+
+```sql
+-- Personal injury cases with medical expenses > $100k
+SELECT * FROM projects
+WHERE case_type = 'Personal Injury'
+AND (custom_fields->>'medical_expenses')::numeric > 100000;
+
+-- Upcoming deadlines in next 7 days
+SELECT p.case_number, c.title, c.start_time
+FROM calendar_entries c
+JOIN projects p ON c.project_id = p.id
+WHERE c.entry_type = 'Deadline'
+AND c.start_time BETWEEN NOW() AND NOW() + INTERVAL '7 days';
+
+-- Total billable hours by project
+SELECT p.case_number, SUM(te.hours) as total_hours
+FROM time_entries te
+JOIN projects p ON te.project_id = p.id
+GROUP BY p.case_number
+ORDER BY total_hours DESC;
+```
+
+---
+
 ## 📁 Project Structure
 
 ```
@@ -138,8 +229,24 @@ LOIS/
 │   │       └── api/chat/+server.ts               # API endpoint (future)
 │   ├── package.json
 │   └── svelte.config.js
+├── database/                           # Database schema and seed data
+│   ├── schema.sql                      # PostgreSQL schema (9 entities)
+│   └── seed/                           # Data generation scripts
+│       ├── src/
+│       │   ├── config.ts               # Supabase client + config
+│       │   ├── index.ts                # Master seed script
+│       │   └── generators/             # Data generators
+│       │       ├── projects.ts         # Legal cases
+│       │       ├── contacts.ts         # People + relationships
+│       │       ├── documents.ts        # Documents with content
+│       │       ├── calendar.ts         # Events and deadlines
+│       │       ├── notes-tasks.ts      # Notes and tasks
+│       │       └── billing.ts          # Time, expenses, invoices
+│       ├── package.json
+│       └── README.md                   # Seed documentation
 ├── IMPLEMENTATION.md                   # Complete implementation docs
 ├── DEPLOYMENT_ROADMAP.md               # Phased development plan
+├── DATA_STORE_PLAN.md                  # Database architecture
 ├── PROJECT_PLAN.md                     # Original project plan
 └── README.md                           # This file
 ```
