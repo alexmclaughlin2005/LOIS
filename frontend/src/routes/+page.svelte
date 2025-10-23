@@ -10,7 +10,9 @@
 	<!-- Sidebar -->
 	<aside class="sidebar">
 		<div class="sidebar-header">
-			<h1 class="logo">LO\S</h1>
+			<h1 class="logo">
+				<span class="logo-gradient">LO</span><span class="logo-slash">\</span><span class="logo-gradient">S</span>
+			</h1>
 			<button class="icon-button" aria-label="Toggle sidebar">
 				<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
 					<rect x="3" y="4" width="14" height="2" rx="1" fill="currentColor"/>
@@ -114,55 +116,63 @@
 					/>
 					<div class="input-controls">
 						<div class="input-left">
-							<button class="input-button">Look at...</button>
+							<button class="input-button dropdown">
+								Look at...
+								<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+									<path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+								</svg>
+							</button>
 							<button class="input-button">
-								<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-									<path d="M8 2L9.5 6.5H14L10.5 9.5L12 14L8 11L4 14L5.5 9.5L2 6.5H6.5L8 2Z"/>
+								<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+									<path d="M7 1L8.5 5.5H13L9.5 8.5L11 13L7 10L3 13L4.5 8.5L1 5.5H5.5L7 1Z"/>
 								</svg>
 								Saved Prompts
 							</button>
 						</div>
 						<div class="input-right">
-							<button class="icon-button" aria-label="Upload file">
-								<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-									<path d="M10 14V6M6 10L10 6L14 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-									<path d="M4 16H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+							<button class="icon-button-small" aria-label="Upload file">
+								<svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+									<path d="M9 13V5M5 9L9 5L13 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+									<path d="M4 15H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
 								</svg>
 							</button>
-							<button class="icon-button" aria-label="Voice input">
-								<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-									<path d="M10 2C8.34315 2 7 3.34315 7 5V10C7 11.6569 8.34315 13 10 13C11.6569 13 13 11.6569 13 10V5C13 3.34315 11.6569 2 10 2Z" stroke="currentColor" stroke-width="2"/>
-									<path d="M5 10C5 12.7614 7.23858 15 10 15M10 15C12.7614 15 15 12.7614 15 10M10 15V18M8 18H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+							<button class="icon-button-small" aria-label="Voice input">
+								<svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+									<path d="M9 2C7.89543 2 7 2.89543 7 4V9C7 10.1046 7.89543 11 9 11C10.1046 11 11 10.1046 11 9V4C11 2.89543 10.1046 2 9 2Z" stroke="currentColor" stroke-width="1.5"/>
+									<path d="M5 9C5 11.2091 6.79086 13 9 13M9 13C11.2091 13 13 11.2091 13 9M9 13V16M7 16H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
 								</svg>
 							</button>
-							<button class="ask-button">Ask LO\S</button>
+							<button class="ask-button">
+								Ask LO\S
+								<span class="button-indicator"></span>
+							</button>
 						</div>
 					</div>
 				</div>
 
 				<div class="action-cards">
 					<button class="action-card">
-						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="action-icon">
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="action-icon">
 							<circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
 							<path d="M16 16L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 						</svg>
 						<span class="action-title">Search</span>
 					</button>
 					<button class="action-card">
-						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="action-icon">
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="action-icon">
 							<rect x="5" y="4" width="14" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
 							<path d="M9 8H15M9 12H15M9 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 						</svg>
 						<span class="action-title">Report</span>
 					</button>
 					<button class="action-card">
-						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="action-icon">
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="action-icon">
 							<path d="M3 13L5 18L9 9L15 18L19 7L21 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 						</svg>
 						<span class="action-title">Analyze</span>
 					</button>
 					<button class="action-card">
-						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="action-icon">
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="action-icon">
 							<path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 						</svg>
 						<span class="action-title">Summarize</span>
@@ -199,11 +209,28 @@
 	}
 
 	.logo {
-		font-size: 18px;
-		font-weight: 600;
-		color: var(--color-brand-coral);
+		font-size: 24px;
+		font-weight: 700;
 		margin: 0;
-		letter-spacing: 0.05em;
+		letter-spacing: 0;
+		display: flex;
+		align-items: center;
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	}
+
+	.logo-gradient {
+		background: linear-gradient(135deg, #FF9F66 0%, #FF6B9D 50%, #C86DD7 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.logo-slash {
+		background: linear-gradient(135deg, #FF6B9D 0%, #C86DD7 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		margin: 0 -1px;
 	}
 
 	.icon-button {
@@ -277,16 +304,21 @@
 	.routine-item {
 		display: flex;
 		align-items: flex-start;
-		gap: 8px;
-		padding: 8px;
-		border-radius: 6px;
+		gap: 12px;
+		padding: 12px;
+		padding-left: 16px;
+		border-radius: 8px;
 		cursor: pointer;
-		margin-bottom: 4px;
-		transition: background 0.15s;
+		margin-bottom: 8px;
+		background: white;
+		border: 1px solid var(--color-border);
+		border-left: 3px solid #FF9F66;
+		transition: all 0.15s;
 	}
 
 	.routine-item:hover {
-		background: #f5f5f5;
+		border-left-color: var(--color-brand-coral);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 	}
 
 	.routine-content {
@@ -433,6 +465,29 @@
 		background: #f5f5f5;
 	}
 
+	.input-button.dropdown svg {
+		opacity: 0.6;
+	}
+
+	.icon-button-small {
+		width: 28px;
+		height: 28px;
+		padding: 0;
+		border: none;
+		background: transparent;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--color-text-secondary);
+		border-radius: 4px;
+		transition: background 0.15s;
+	}
+
+	.icon-button-small:hover {
+		background: #f5f5f5;
+	}
+
 	.ask-button {
 		padding: 8px 20px;
 		border: none;
@@ -443,26 +498,40 @@
 		font-weight: 500;
 		cursor: pointer;
 		transition: background 0.15s;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		position: relative;
 	}
 
 	.ask-button:hover {
 		background: #333;
 	}
 
+	.button-indicator {
+		width: 6px;
+		height: 6px;
+		background: #FF6B9D;
+		border-radius: 50%;
+		display: inline-block;
+	}
+
 	.action-cards {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		gap: 16px;
+		display: flex;
+		gap: 12px;
+		flex-wrap: wrap;
 	}
 
 	.action-card {
-		padding: 24px;
+		flex: 1;
+		min-width: 160px;
+		padding: 16px;
 		border: 1px solid var(--color-border);
 		background: white;
 		border-radius: 8px;
 		cursor: pointer;
 		display: flex;
-		flex-direction: column;
+		flex-direction: row;
 		align-items: center;
 		gap: 12px;
 		transition: all 0.15s;
@@ -475,6 +544,9 @@
 
 	.action-icon {
 		color: var(--color-text-secondary);
+		flex-shrink: 0;
+		width: 20px;
+		height: 20px;
 	}
 
 	.action-title {
