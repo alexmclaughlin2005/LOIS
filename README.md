@@ -1,120 +1,328 @@
-# LOIS - Localized Organizational Intelligence System
+# LOIS - Legal Operations Intelligence System
 
-An omni-search conversational application that provides unified access to organizational data through natural language interaction.
+A SvelteKit-based chat application for legal professionals to query case data, visualize results, and create automated routines.
 
-## Project Overview
+**Repository**: https://github.com/alexmclaughlin2005/LOIS
 
-LOIS connects to multiple data stores (projects, people, documents, notes, calendar, field data, audit logs) and presents information through an intelligent, context-aware conversational interface.
+**Live Demo**: Deploy to Vercel today! → See [Deployment](#deployment-to-vercel) section below
 
-This is a **high-fidelity working prototype** built with synthetic datasets for user testing and validation.
+---
 
-## Documentation
+## ✨ Features
 
-### 📌 Start Here
-- **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - Quick reference card with key info, links, and checklists
-- **[PROJECT_KICKOFF_SUMMARY.md](./PROJECT_KICKOFF_SUMMARY.md)** - Executive summary of planning phase
+### Currently Implemented (Demo Mode)
 
-### 📋 Core Documentation
-- **[ai_instructions.md](./ai_instructions.md)** - Master document mapping features, services, and architecture
-- **[PROJECT_PLAN.md](./PROJECT_PLAN.md)** - Detailed project plan with phases, milestones, and deliverables
-- **[DESIGN_SPECIFICATIONS.md](./DESIGN_SPECIFICATIONS.md)** - Complete UI/UX guidelines with colors, typography, and components
-- **[FIGMA_DESIGN_ANALYSIS.md](./FIGMA_DESIGN_ANALYSIS.md)** - Summary of Figma design review and key findings
-- **[NEXT_STEPS.md](./NEXT_STEPS.md)** - Immediate action items and Phase 0 checklist
+- ✅ **Chat Interface**: Conversational UI for querying legal case data
+- ✅ **Demo Queries**: Two hardcoded queries demonstrating the system
+  - "How many open personal injury cases are currently in the discovery phase?" → Returns 42 cases
+  - "Can you show me which of these cases have medical expenses exceed $100,000?" → Returns 3 cases
+- ✅ **Routine Creation**: Inline 560px form for creating automated routines with scheduling
+- ✅ **Routines Library**: 480px side panel with:
+  - 4 promoted routines from other organizations
+  - 8 personal routines in grid layout
+  - Expandable subroutines
+- ✅ **Data Visualization**: Results display with case information tables
+- ✅ **Design System**: Figma-based design with Helvetica Now typography
 
-### 📚 Additional Documentation
-- **[API Documentation](./docs/api.md)** - API endpoints and usage (coming soon)
-- **[User Guide](./docs/user-guide.md)** - End-user documentation (coming soon)
+### Coming Soon (See [Roadmap](#roadmap))
 
-## Project Structure
+- 🔄 Database integration (Supabase PostgreSQL)
+- 🔄 User authentication and profiles
+- 🔄 Real-time query execution
+- 🔄 Scheduled routine automation
+- 🔄 Email notifications
+- 🔄 Data export (CSV, PDF)
+- 🔄 Advanced filtering
+- 🔄 Natural language query parsing (AI)
 
-```
-lois/
-├── frontend/          # React + TypeScript frontend
-│   └── src/
-│       ├── components/    # UI components
-│       ├── services/      # API and business logic
-│       ├── hooks/         # React hooks
-│       ├── stores/        # State management
-│       ├── types/         # TypeScript types
-│       └── utils/         # Utility functions
-├── backend/           # Node.js + TypeScript backend
-│   └── src/
-│       ├── api/           # Routes and middleware
-│       ├── services/      # Business logic
-│       ├── models/        # Data models
-│       ├── database/      # Database setup and migrations
-│       └── utils/         # Utility functions
-├── data/              # Data generation and seeding
-│   ├── generators/        # Synthetic data generators
-│   ├── seeds/            # Database seeding scripts
-│   └── synthetic/        # Generated data files
-└── docs/              # Additional documentation
-```
+---
 
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - Node.js 20+ LTS
-- PostgreSQL 15+
-- pnpm (or npm)
-- Docker (optional, for running services locally)
+- npm or pnpm
 
-### Installation
+### Local Development
 
-Instructions coming soon after Phase 0 setup is complete.
+```bash
+# Clone the repository
+git clone https://github.com/alexmclaughlin2005/LOIS.git
+cd LOIS/frontend
 
-## Features
+# Install dependencies
+npm install
 
-- **Omni-Search**: Search across all data stores simultaneously
-- **Conversational Interface**: Natural language queries with context awareness
-- **Multi-Type Results**: Unified display of heterogeneous results
-- **Advanced Filtering**: Dynamic filters and faceted search
-- **Export & Reporting**: Export results in multiple formats
-- **Analytics Dashboard**: Insights about search patterns and data distribution
+# Start development server
+npm run dev
 
-## Data Stores
+# Open http://localhost:5173
+```
 
-LOIS connects to the following data types:
+### Build for Production
 
-1. **Projects** - Project information, status, team
-2. **People** - Personnel, contacts, roles
-3. **Documents** - Files, reports, documentation
-4. **Notes** - Internal notes and annotations
-5. **Calendar** - Events, meetings, deadlines
-6. **Field Data** - Location-based field observations
-7. **Audit** - Activity logs and audit trail
+```bash
+cd frontend
+npm run build
+npm run preview  # Preview production build locally
+```
 
-## Technology Stack
+---
+
+## 📦 Deployment to Vercel
+
+### Option 1: Via Vercel Dashboard (Recommended - 5 minutes)
+
+1. Go to **https://vercel.com** and sign up/login
+2. Click **"New Project"**
+3. Import repository: `alexmclaughlin2005/LOIS`
+4. Configure settings:
+   - **Framework Preset**: SvelteKit
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `.svelte-kit`
+   - **Install Command**: `npm install`
+5. Click **"Deploy"**
+6. Wait 2-3 minutes
+7. ✅ Visit your live URL!
+
+### Option 2: Via Vercel CLI
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Deploy
+cd frontend
+vercel
+
+# Follow prompts to deploy
+```
+
+### Environment Variables
+
+Not needed for demo mode. Required in Phase 2+:
+
+```bash
+# Phase 2 - Database
+PUBLIC_SUPABASE_URL=your-project-url
+PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# Phase 3 - Background Jobs
+INNGEST_EVENT_KEY=your-key
+INNGEST_SIGNING_KEY=your-key
+
+# Phase 4 - AI (Optional)
+ANTHROPIC_API_KEY=your-key
+```
+
+---
+
+## 📁 Project Structure
+
+```
+LOIS/
+├── frontend/                           # SvelteKit application
+│   ├── src/
+│   │   ├── lib/
+│   │   │   └── components/             # Svelte components
+│   │   │       ├── RoutineCreationCard.svelte    # 560px routine form
+│   │   │       ├── RoutinesLibrary.svelte        # 480px side panel
+│   │   │       ├── ResultsView.svelte            # Query results display
+│   │   │       ├── DataPreviewCard.svelte        # Data preview
+│   │   │       └── DataLoadingSkeleton.svelte    # Loading state
+│   │   └── routes/
+│   │       ├── +page.svelte                      # Landing page
+│   │       ├── chat/+page.svelte                 # Chat interface (main app)
+│   │       └── api/chat/+server.ts               # API endpoint (future)
+│   ├── package.json
+│   └── svelte.config.js
+├── IMPLEMENTATION.md                   # Complete implementation docs
+├── DEPLOYMENT_ROADMAP.md               # Phased development plan
+├── PROJECT_PLAN.md                     # Original project plan
+└── README.md                           # This file
+```
+
+---
+
+## 💻 Technology Stack
 
 ### Frontend
-- React 18+ with TypeScript
-- Vite build tool
-- Tailwind CSS + Shadcn/ui
-- Zustand or React Query for state
-- React Router for navigation
+- **Framework**: SvelteKit + TypeScript
+- **Styling**: Tailwind CSS
+- **Design**: Figma-based (Helvetica Now fonts)
+- **Build**: Vite
 
-### Backend
-- Node.js with Express/Fastify
-- TypeScript
-- PostgreSQL database
-- Elasticsearch/MeiliSearch for search
-- Redis for caching (optional)
+### Future Backend (Phase 2+)
+- **Database**: Supabase (PostgreSQL + Auth)
+- **Background Jobs**: Inngest
+- **Email**: Resend
+- **AI**: OpenAI GPT-4 (optional)
+- **Caching**: Vercel KV (Redis)
 
-### Data Generation
-- Faker.js for synthetic data
-- Custom TypeScript generators
+### Deployment
+- **Hosting**: Vercel
+- **CI/CD**: Auto-deploy on git push
+- **Domain**: Custom domain support
 
-## Development Status
+---
 
-**Current Phase**: Phase 0 - Planning & Setup
+## 🎮 Try the Demo
 
-See [PROJECT_PLAN.md](./PROJECT_PLAN.md) for detailed timeline and milestones.
+### Demo Query 1
+```
+How many open personal injury cases are currently in the discovery phase?
+```
+**Expected**: "I found 42 open personal injury cases..."
 
-## License
+### Demo Query 2 (Follow-up)
+```
+Can you show me which of these cases have medical expenses exceed $100,000?
+```
+**Expected**: Shows 3 cases with "Yes, create routine" button
 
-[To be determined]
+### Create a Routine
+1. Click **"Yes, create routine"**
+2. Form appears with pre-filled schedule
+3. Edit fields or click **"Save Routine"**
 
-## Contact
+### Explore Routines Library
+1. Click routines icon in header
+2. Browse 4 promoted routines
+3. Expand to see subroutines
+4. Scroll to view 8 personal routines in grid
 
-[To be determined]
+---
+
+## 📚 Documentation
+
+### Core Docs
+- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Complete system documentation
+  - All features explained
+  - Design system specs (colors, typography, spacing)
+  - Component API documentation
+  - State management patterns
+  - Demo flow walkthrough
+
+- **[DEPLOYMENT_ROADMAP.md](DEPLOYMENT_ROADMAP.md)** - Development plan
+  - **Phase 1**: Vercel deployment (current - deploy today!)
+  - **Phase 2**: Database & auth (weeks 2-3)
+  - **Phase 3**: Routine execution (weeks 4-6)
+  - **Phase 4-5**: Advanced features (weeks 7-12)
+  - Technology recommendations
+  - Budget estimates ($0-125/mo depending on phase)
+
+- **[PROJECT_PLAN.md](PROJECT_PLAN.md)** - Original omni-search concept plan
+
+---
+
+## 🗺️ Roadmap
+
+### Phase 1: Deployment ✅ (Current - Week 1)
+- [x] Demo application with chat interface
+- [x] Routine creation and management UI
+- [x] Design system implementation
+- [ ] **→ Production deployment on Vercel (DO THIS TODAY!)**
+- [ ] Documentation complete
+
+### Phase 2: Backend Integration (Weeks 2-3)
+- [ ] Supabase PostgreSQL database
+- [ ] User authentication (login/signup)
+- [ ] Real query API (replace demo mode)
+- [ ] Database schema and seed data
+
+### Phase 3: Routine Automation (Weeks 4-6)
+- [ ] Inngest for scheduled execution
+- [ ] Email notifications (Resend)
+- [ ] Execution history tracking
+- [ ] Error handling and retries
+
+### Phase 4: Enhanced Features (Weeks 7-10)
+- [ ] Data export (CSV, PDF)
+- [ ] Advanced filtering
+- [ ] Natural language queries (AI)
+- [ ] Analytics dashboard
+
+### Phase 5: Polish & Production (Weeks 11-12)
+- [ ] Performance optimization (Lighthouse > 90)
+- [ ] Testing (70%+ coverage)
+- [ ] Error tracking (Sentry)
+- [ ] Mobile responsiveness
+
+---
+
+## 💰 Budget & Costs
+
+### Current (Demo Mode)
+- Vercel: **$0** (free tier)
+- Domain: **$15/year** (optional)
+- **Total: $0-15/year**
+
+### Phase 2-3 (Basic Features)
+- Vercel: **$0-20/month**
+- Supabase: **$0** (free tier)
+- Inngest: **$0** (free tier)
+- Resend: **$0** (free tier)
+- **Total: $0-20/month**
+
+### Production (All Features)
+- Vercel Pro: **$20/month**
+- Supabase Pro: **$25/month**
+- Inngest: **$20/month**
+- Resend Pro: **$10/month**
+- OpenAI API: **$20-50/month** (usage)
+- **Total: $95-125/month**
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/your-feature`
+3. Make changes
+4. Commit: `git commit -m "feat: add amazing feature"`
+5. Push: `git push origin feature/your-feature`
+6. Open Pull Request
+
+### Guidelines
+- Follow existing code style
+- Maintain TypeScript types
+- Update documentation
+- Test thoroughly
+
+---
+
+## 📊 Project Status
+
+- **Version**: 1.0.0-demo
+- **Status**: Demo/Prototype Phase
+- **Last Updated**: October 23, 2025
+- **Next Milestone**: Production Deployment on Vercel
+
+---
+
+## 📞 Support
+
+- **Issues**: https://github.com/alexmclaughlin2005/LOIS/issues
+- **Discussions**: https://github.com/alexmclaughlin2005/LOIS/discussions
+
+---
+
+## 📄 License
+
+[Add license - MIT, Apache 2.0, etc.]
+
+---
+
+## 🙏 Acknowledgments
+
+- Design system based on Figma designs
+- Built with SvelteKit, Tailwind CSS, and modern web tech
+- Inspired by modern legal operations tools
+
+---
+
+**Ready to deploy?**
+
+👉 Follow the [Deployment to Vercel](#deployment-to-vercel) section and get your app live in 5 minutes! 🚀
