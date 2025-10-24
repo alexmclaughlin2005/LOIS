@@ -418,7 +418,7 @@
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
-						query: inputMessage,
+						query: userMessage,
 						data: formattedResult.tableData || queryResult.data,
 						queryType: queryResult.type
 					})
