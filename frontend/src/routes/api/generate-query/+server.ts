@@ -255,14 +255,36 @@ Respond ONLY with the JSON object, no other text.`
 
 		// Validate the response structure
 		if (!result.sql || !result.explanation) {
+			console.error('❌ Invalid response structure:', result);
 			throw new Error('Invalid response structure from Claude');
 		}
 
+		// Clean the SQL - remove markdown code blocks if present
+		let cleanedSql = result.sql.trim();
+
+		// Remove markdown SQL code blocks
+		const sqlBlockMatch = cleanedSql.match(/```sql\s*([\s\S]*?)\s*```/);
+		if (sqlBlockMatch) {
+			cleanedSql = sqlBlockMatch[1].trim();
+			console.log('📝 Extracted SQL from markdown code block');
+		} else if (cleanedSql.startsWith('```')) {
+			// Generic code block
+			cleanedSql = cleanedSql.replace(/```[\s\S]*?\n/, '').replace(/```$/, '').trim();
+			console.log('📝 Extracted SQL from generic code block');
+		}
+
+		console.log('🔍 Cleaned SQL:', cleanedSql);
+
 		// Safety check: ensure query is SELECT only
-		const sqlUpper = result.sql.trim().toUpperCase();
+		const sqlUpper = cleanedSql.trim().toUpperCase();
 		if (!sqlUpper.startsWith('SELECT')) {
+			console.error('❌ SQL does not start with SELECT. First 100 chars:', sqlUpper.substring(0, 100));
+			console.error('❌ Full SQL:', cleanedSql);
 			throw new Error('Only SELECT queries are allowed');
 		}
+
+		// Update result with cleaned SQL
+		result.sql = cleanedSql;
 
 		// Check for dangerous keywords
 		const dangerousKeywords = ['DROP', 'DELETE', 'INSERT', 'UPDATE', 'TRUNCATE', 'ALTER', 'CREATE'];
