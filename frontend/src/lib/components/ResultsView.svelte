@@ -6,7 +6,7 @@
 
 	// Figma design uses exactly 4 columns
 	// We'll either use the Figma column names if they exist, or take first 4 columns
-	let allColumns: string[] = data.length > 0 ? Object.keys(data[0]) : [];
+	let allColumns: string[] = data && Array.isArray(data) && data.length > 0 ? Object.keys(data[0]) : [];
 
 	// Check if data matches Figma structure
 	const hasFigmaColumns = ['project', 'type', 'phase', 'primary'].every(col =>

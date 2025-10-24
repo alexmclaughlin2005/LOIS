@@ -284,6 +284,7 @@ Generate a PostgreSQL query to answer this question. Respond with ONLY a JSON ob
    - For counts/aggregations, use COUNT(), SUM(), AVG() with GROUP BY
 
 6. **Column Selection & Aliases**:
+   - **CRITICAL**: When querying documents, time_entries, expenses, calendar_entries, or any child table, ALWAYS include p.case_number in SELECT
    - Use descriptive aliases: SELECT p.case_number as "Case Number"
    - Format dates: TO_CHAR(date_column, 'YYYY-MM-DD') as formatted_date
    - Cast JSONB: (custom_fields->>'amount')::numeric as amount
