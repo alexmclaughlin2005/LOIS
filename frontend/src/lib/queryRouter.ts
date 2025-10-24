@@ -428,6 +428,90 @@ Available data types: cases, contacts, documents, calendar entries, time entries
 }
 
 /**
+ * Handle direct entity search/lookup queries
+ */
+async function handleSearch(query: string, context?: QueryContext): Promise<QueryResult> {
+  try {
+    console.log('🔍 Handling search query:', query);
+
+    // Clean the query - remove "find", "show me", etc.
+    const searchTerm = query
+      .replace(/^(find|show me|lookup|get|search for)\s+/i, '')
+      .trim();
+
+    console.log('📝 Search term:', searchTerm);
+
+    // Search across all tables (contacts, projects, documents)
+    // Priority: contacts by name, projects by case number or title, documents by title
+
+    // Search contacts
+    const { data: contacts, error: contactError } = await supabase
+      .from('contacts')
+      .select('*')
+      .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+      .limit(10);
+
+    // Search projects (cases)
+    const { data: projects, error: projectError } = await supabase
+      .from('projects')
+      .select('*')
+      .or(`case_number.ilike.%${searchTerm}%,title.ilike.%${searchTerm}%`)
+      .limit(10);
+
+    // Search documents
+    const { data: documents, error: documentError} = await supabase
+      .from('documents')
+      .select(`
+        *,
+        projects (case_number, title)
+      `)
+      .or(`title.ilike.%${searchTerm}%,file_name.ilike.%${searchTerm}%`)
+      .limit(10);
+
+    // Combine all results
+    const allResults = [
+      ...(contacts || []).map(c => ({ ...c, _entityType: 'contact' })),
+      ...(projects || []).map(p => ({ ...p, _entityType: 'project' })),
+      ...(documents || []).map(d => ({ ...d, _entityType: 'document' }))
+    ];
+
+    const resultCount = allResults.length;
+    console.log(`📊 Found ${resultCount} results`);
+
+    if (resultCount === 0) {
+      return {
+        type: 'search',
+        action: `No results found for "${searchTerm}"`,
+        data: null,
+        prompt: `I couldn't find any matches for "${searchTerm}". Try searching for:
+- A person's name (e.g., "John Smith")
+- A case number (e.g., "CV-2025-00001")
+- A case title or document name`,
+        sqlQuery: undefined
+      };
+    }
+
+    return {
+      type: 'search',
+      action: `Found ${resultCount} result${resultCount === 1 ? '' : 's'} for "${searchTerm}"`,
+      data: allResults,
+      prompt: `Found ${resultCount} result${resultCount === 1 ? '' : 's'} matching "${searchTerm}".`,
+      sqlQuery: undefined
+    };
+
+  } catch (error: any) {
+    console.error('❌ Search error:', error);
+    return {
+      type: 'search',
+      action: 'Search encountered an error',
+      data: null,
+      prompt: '',
+      error: error.message
+    };
+  }
+}
+
+/**
  * Main router function - now uses LLM for classification
  */
 export async function routeQuery(query: string, context?: QueryContext): Promise<QueryResult> {
@@ -462,6 +546,9 @@ export async function routeQuery(query: string, context?: QueryContext): Promise
     switch (type) {
       case 'sql':
         return handleSQLQuery(query, context);
+
+      case 'search':
+        return handleSearch(query, context);
 
       case 'document_search':
         return handleDocumentSearch(query, context);

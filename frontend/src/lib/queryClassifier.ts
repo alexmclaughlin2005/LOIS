@@ -4,10 +4,11 @@
  * Analyzes user queries to determine intent and route to appropriate handlers:
  * - SQL Query: Structured data queries (aggregations, filters, joins)
  * - Document Search: Full-text search across documents
+ * - Search: Direct entity lookup (person, case, document by name/number)
  * - General Question: Conversational queries about data
  */
 
-export type QueryType = 'sql' | 'document_search' | 'general';
+export type QueryType = 'sql' | 'document_search' | 'search' | 'general';
 
 export interface ClassificationResult {
   type: QueryType;
@@ -50,6 +51,22 @@ export function classifyQuery(query: string): ClassificationResult {
     ]
   };
 
+  // Search/Lookup indicators (direct entity search)
+  const searchIndicators = {
+    keywords: [
+      'find', 'show', 'lookup', 'get', 'search for'
+    ],
+    patterns: [
+      /^[A-Z][a-z]+ [A-Z][a-z]+$/, // Proper name: "John Smith"
+      /^[A-Z][a-z]+ [A-Z]\. [A-Z][a-z]+$/, // Name with middle initial: "John A. Smith"
+      /^(CV|CR|PI|FL|CR|IP|RE|EM)-\d{4}-\d{5}$/, // Case number format
+      /^find [A-Z][a-z]+ [A-Z][a-z]+$/i, // "find John Smith"
+      /^show me [A-Z][a-z]+ [A-Z][a-z]+$/i, // "show me John Smith"
+      /^(lookup|get|search for) [A-Z][a-z]+ [A-Z][a-z]+$/i, // "lookup John Smith"
+      /^[A-Z][a-z]+$/ // Single name: "Smith"
+    ]
+  };
+
   // Document Search indicators
   const documentIndicators = {
     keywords: [
@@ -83,8 +100,17 @@ export function classifyQuery(query: string): ClassificationResult {
 
   // Calculate scores for each type
   let sqlScore = 0;
+  let searchScore = 0;
   let documentScore = 0;
   let generalScore = 0;
+
+  // Check Search indicators first (highest priority for direct lookups)
+  searchIndicators.patterns.forEach(pattern => {
+    if (pattern.test(query)) searchScore += 3; // High score for pattern match
+  });
+  searchIndicators.keywords.forEach(keyword => {
+    if (normalized.startsWith(keyword + ' ')) searchScore += 2;
+  });
 
   // Check SQL indicators
   sqlIndicators.keywords.forEach(keyword => {
@@ -140,8 +166,8 @@ export function classifyQuery(query: string): ClassificationResult {
   }
 
   // Determine type based on highest score
-  const maxScore = Math.max(sqlScore, documentScore, generalScore);
-  const totalScore = sqlScore + documentScore + generalScore || 1;
+  const maxScore = Math.max(searchScore, sqlScore, documentScore, generalScore);
+  const totalScore = searchScore + sqlScore + documentScore + generalScore || 1;
 
   if (maxScore === 0) {
     // No clear indicators, default to general
@@ -150,6 +176,16 @@ export function classifyQuery(query: string): ClassificationResult {
       confidence: 0.5,
       reasoning: 'No specific indicators found, treating as general question',
       suggestedAction: 'Analyzing your question...'
+    };
+  }
+
+  // Search has highest priority for direct lookups
+  if (searchScore === maxScore && searchScore >= 2) {
+    return {
+      type: 'search',
+      confidence: searchScore / totalScore,
+      reasoning: 'Detected direct entity lookup (name, case number, or identifier)',
+      suggestedAction: 'Searching for entity...'
     };
   }
 
