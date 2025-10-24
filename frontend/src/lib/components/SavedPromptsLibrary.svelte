@@ -110,7 +110,7 @@
 </script>
 
 <div class="library-overlay" on:click={onClose} role="presentation">
-	<div class="library-container" on:click|stopPropagation role="dialog" aria-modal="true">
+	<div class="library-container" class:creation-mode={showCreation} on:click|stopPropagation role="dialog" aria-modal="true">
 		{#if showCreation}
 			<div class="creation-wrapper">
 				<PromptCreation
@@ -310,13 +310,18 @@
 		display: flex;
 		flex-direction: column;
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		transition: max-width 0.2s ease;
+	}
+
+	.library-container.creation-mode {
+		max-width: 650px;
 	}
 
 	.creation-wrapper {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 40px 20px;
+		padding: 20px;
 		min-height: 400px;
 	}
 
