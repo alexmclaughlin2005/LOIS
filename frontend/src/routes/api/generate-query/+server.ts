@@ -21,10 +21,15 @@ Your database contains legal case management data with the following tables:
 - status (VARCHAR) - Status: Open, Closed, Pending, On Hold
 - phase (VARCHAR) - Phases: Discovery, Trial, Settlement, Appeal, Potential New Client, etc.
 - priority (VARCHAR) - Priority: Low, Medium, High, Urgent
+- jurisdiction (VARCHAR) - Legal jurisdiction
+- court_name (VARCHAR) - Name of court
+- filing_date (DATE) - Case filing date (NOT start_date!)
+- estimated_value (DECIMAL) - Estimated case value
 - description (TEXT) - Case description
-- start_date (DATE) - Case start date
-- end_date (DATE) - Case end date (null if ongoing)
-- budget (DECIMAL) - Case budget
+- assigned_attorney (UUID) - Assigned attorney ID
+- created_by (UUID) - Creator user ID
+- created_at (TIMESTAMP) - Record creation timestamp
+- updated_at (TIMESTAMP) - Record update timestamp
 - custom_fields (JSONB) - Case-specific data:
   - Personal Injury cases: medical_expenses, lost_wages, injury_type, liability_percentage
   - Corporate cases: contract_value, transaction_type, jurisdiction
@@ -34,17 +39,23 @@ Your database contains legal case management data with the following tables:
   - Employment cases: claim_type, settlement_amount, termination_date
   - IP cases: patent_number, trademark_name, infringement_type
   - Estate Planning cases: estate_value, trust_type, beneficiaries
-- created_at (TIMESTAMP)
-- updated_at (TIMESTAMP)
 
 ### 2. contacts
 - id (UUID, primary key)
 - first_name (VARCHAR)
 - last_name (VARCHAR)
-- email (VARCHAR)
+- email (VARCHAR, unique)
 - phone (VARCHAR)
 - contact_type (VARCHAR) - Types: Client, Attorney, Witness, Expert, Court Personnel, Paralegal
-- company (VARCHAR)
+- organization (VARCHAR) - NOT company!
+- title (VARCHAR) - Job title
+- bar_number (VARCHAR) - For attorneys
+- specialty (VARCHAR) - For experts
+- address_line1, address_line2 (VARCHAR)
+- city (VARCHAR)
+- state (VARCHAR)
+- zip_code (VARCHAR)
+- country (VARCHAR) - Default: 'United States'
 - notes (TEXT)
 - created_at (TIMESTAMP)
 - updated_at (TIMESTAMP)
@@ -106,22 +117,29 @@ Your database contains legal case management data with the following tables:
 ### 8. time_entries
 - id (UUID, primary key)
 - project_id (UUID, foreign key to projects)
-- user_name (VARCHAR)
-- description (TEXT)
-- hours (DECIMAL)
-- billable_rate (DECIMAL)
-- entry_date (DATE)
+- attorney (UUID) - Attorney who logged the time
+- date (DATE) - Date of time entry (NOT entry_date!)
+- hours (DECIMAL) - Hours worked
+- activity_type (VARCHAR) - Type of activity
+- description (TEXT) - Description of work
+- hourly_rate (DECIMAL) - Billing rate (NOT billable_rate!)
+- total_amount (DECIMAL) - Computed: hours * hourly_rate
+- is_billable (BOOLEAN) - Whether entry is billable
+- invoice_id (UUID) - Associated invoice if billed
 - created_at (TIMESTAMP)
 - updated_at (TIMESTAMP)
 
 ### 9. expenses
 - id (UUID, primary key)
 - project_id (UUID, foreign key to projects)
+- date (DATE) - Expense date (NOT expense_date!)
+- expense_type (VARCHAR) - Type/category of expense (NOT expense_category!)
 - description (TEXT)
 - amount (DECIMAL)
-- expense_category (VARCHAR) - Categories: Travel, Filing Fees, Expert Fees, Court Costs, Research, Office Supplies
-- expense_date (DATE)
-- receipt_path (VARCHAR)
+- vendor (VARCHAR) - Vendor name
+- receipt_file_path (VARCHAR) - Path to receipt file
+- is_billable (BOOLEAN) - Whether expense is billable
+- invoice_id (UUID) - Associated invoice if billed
 - created_at (TIMESTAMP)
 - updated_at (TIMESTAMP)
 

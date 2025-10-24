@@ -9,6 +9,9 @@
 	"/api/generate-query": [
 		"src/routes/api/generate-query/+server.ts"
 	],
+	"/api/test-query": [
+		"src/routes/api/test-query/+server.ts"
+	],
 	"/chat": [],
 	"/results": []
 }
