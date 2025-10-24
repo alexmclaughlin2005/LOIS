@@ -7,6 +7,7 @@
 	import RoutineCreationCard from '$lib/components/RoutineCreationCard.svelte';
 	import RoutinesLibrary from '$lib/components/RoutinesLibrary.svelte';
 	import QueryProcessingIndicator from '$lib/components/QueryProcessingIndicator.svelte';
+	import ResultsRenderer from '$lib/components/results/ResultsRenderer.svelte';
 	import { testConnection } from '$lib/supabase';
 	import { getOpenPersonalInjuryCases, getCasesWithHighMedicalExpenses } from '$lib/queries';
 	import { routeQuery, formatResultForDisplay } from '$lib/queryRouter';
@@ -630,11 +631,22 @@
 										</details>
 									{/if}
 									{#if message.hasStructuredData && message.structuredData}
+										<!-- Use ResultsRenderer for smart card display -->
+										<div class="inline-results">
+											<ResultsRenderer
+												data={message.structuredData.data}
+												showGrouping={true}
+												defaultView="auto"
+											/>
+										</div>
+										<!-- Keep legacy preview card for comparison (can remove later) -->
+										<!--
 										<DataPreviewCard
 											title={message.structuredData.title}
 											data={message.structuredData.data}
 											onViewFull={() => showResults(message.structuredData)}
 										/>
+										-->
 									{/if}
 									{#if message.showActionButton && message.actionButtonText}
 										<button class="action-button" on:click={message.actionButtonCallback}>
@@ -1169,6 +1181,15 @@
 		padding: 0;
 		color: inherit;
 		font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+	}
+
+	/* Inline Results */
+	.inline-results {
+		margin-top: 16px;
+		padding: 16px;
+		background: #F9F9F9;
+		border-radius: 8px;
+		border: 1px solid #E0E0E0;
 	}
 
 	/* Action Button */
