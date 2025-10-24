@@ -405,12 +405,36 @@
 			// Format the result
 			const formattedResult = formatResultForDisplay(queryResult);
 
-			// Update message with prompt (this will be sent to LLM in next phase)
-			// For now, we'll show the data directly
+			// Generate narrative response using LLM
 			isStreaming = false;
 			isProcessingData = true;
 
-			await new Promise(resolve => setTimeout(resolve, 500));
+			console.log('🤖 Generating narrative response...');
+
+			let narrativeResponse = formattedResult.message; // Fallback to prompt
+
+			try {
+				const responseResult = await fetch('/api/generate-response', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						query: inputMessage,
+						data: formattedResult.tableData || queryResult.data,
+						queryType: queryResult.type
+					})
+				});
+
+				if (responseResult.ok) {
+					const responseData = await responseResult.json();
+					if (responseData.success && responseData.response) {
+						narrativeResponse = responseData.response;
+						console.log('✅ Narrative response generated');
+					}
+				}
+			} catch (error) {
+				console.error('❌ Error generating narrative:', error);
+				// Continue with fallback prompt
+			}
 
 			if (formattedResult.hasTable && formattedResult.tableData) {
 				// Create structured data for display
@@ -422,15 +446,15 @@
 					data: formattedResult.tableData
 				};
 
-				// Update message with structured data and SQL query
+				// Update message with narrative response and structured data
 				messages = messages.map((msg, idx) =>
 					idx === messages.length - 1
 						? {
 							...msg,
-							content: formattedResult.message,
+							content: narrativeResponse,
 							hasStructuredData: true,
 							structuredData,
-							displayContent: formattedResult.message,
+							displayContent: narrativeResponse,
 							sqlQuery: queryResult.sqlQuery // Include the SQL query
 						}
 						: msg
@@ -438,12 +462,12 @@
 
 				currentResultsData = structuredData;
 			} else {
-				// Just show the message
+				// Just show the narrative response
 				messages = messages.map((msg, idx) =>
 					idx === messages.length - 1
 						? {
 							...msg,
-							content: formattedResult.message,
+							content: narrativeResponse,
 							sqlQuery: queryResult.sqlQuery // Include SQL query even without table
 						}
 						: msg

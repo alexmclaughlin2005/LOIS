@@ -12,6 +12,9 @@
 	"/api/generate-query": [
 		"src/routes/api/generate-query/+server.ts"
 	],
+	"/api/generate-response": [
+		"src/routes/api/generate-response/+server.ts"
+	],
 	"/api/test-query": [
 		"src/routes/api/test-query/+server.ts"
 	],

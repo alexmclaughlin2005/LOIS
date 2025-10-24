@@ -27,7 +27,7 @@ export {};
 
 declare module "$app/types" {
 	export interface AppTypes {
-		RouteId(): "/" | "/api" | "/api/chat" | "/api/classify-query" | "/api/execute-query" | "/api/generate-query" | "/api/test-query" | "/chat" | "/results";
+		RouteId(): "/" | "/api" | "/api/chat" | "/api/classify-query" | "/api/execute-query" | "/api/generate-query" | "/api/generate-response" | "/api/test-query" | "/chat" | "/results";
 		RouteParams(): {
 			
 		};
@@ -38,11 +38,12 @@ declare module "$app/types" {
 			"/api/classify-query": Record<string, never>;
 			"/api/execute-query": Record<string, never>;
 			"/api/generate-query": Record<string, never>;
+			"/api/generate-response": Record<string, never>;
 			"/api/test-query": Record<string, never>;
 			"/chat": Record<string, never>;
 			"/results": Record<string, never>
 		};
-		Pathname(): "/" | "/api" | "/api/" | "/api/chat" | "/api/chat/" | "/api/classify-query" | "/api/classify-query/" | "/api/execute-query" | "/api/execute-query/" | "/api/generate-query" | "/api/generate-query/" | "/api/test-query" | "/api/test-query/" | "/chat" | "/chat/" | "/results" | "/results/";
+		Pathname(): "/" | "/api" | "/api/" | "/api/chat" | "/api/chat/" | "/api/classify-query" | "/api/classify-query/" | "/api/execute-query" | "/api/execute-query/" | "/api/generate-query" | "/api/generate-query/" | "/api/generate-response" | "/api/generate-response/" | "/api/test-query" | "/api/test-query/" | "/chat" | "/chat/" | "/results" | "/results/";
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
 		Asset(): string & {};
 	}
