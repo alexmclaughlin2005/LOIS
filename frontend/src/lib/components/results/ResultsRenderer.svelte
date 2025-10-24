@@ -66,6 +66,12 @@
 		];
 		const documentScore = documentIndicators.filter(ind => fieldsLower.includes(ind)).length;
 
+		// Priority check: case_number is a strong project indicator
+		// If present, it's almost certainly a project/case result
+		if (fieldsLower.includes('case_number')) {
+			return 'project';
+		}
+
 		// Determine type based on highest score
 		const scores = [
 			{ type: 'project' as EntityType, score: projectScore },
@@ -81,7 +87,7 @@
 		}
 
 		// Fallback: check for specific fields as tiebreakers
-		if (fieldsLower.includes('case_number') || fieldsLower.includes('case_type')) {
+		if (fieldsLower.includes('case_type')) {
 			return 'project';
 		}
 		if (fieldsLower.includes('email') && (fieldsLower.includes('first_name') || fieldsLower.includes('last_name'))) {
