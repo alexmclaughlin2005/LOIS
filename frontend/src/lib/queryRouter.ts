@@ -225,37 +225,96 @@ Be professional, concise, and helpful.`,
  * Handle document search queries
  */
 async function handleDocumentSearch(query: string, context?: QueryContext): Promise<QueryResult> {
-  // Extract search terms (remove common words)
-  const searchTerms = query
-    .toLowerCase()
-    .replace(/search|find|documents?|for|about|containing|with|mentioning/g, '')
-    .trim();
-
   try {
-    // Use PostgreSQL full-text search
-    const { data, error } = await supabase
-      .from('documents')
-      .select(`
-        title,
-        document_type,
-        date_filed,
-        projects (case_number, title)
-      `)
-      .textSearch('content', searchTerms, {
-        type: 'websearch',
-        config: 'english'
-      })
-      .limit(20);
+    // Check if we have context with case numbers
+    let caseNumbers: string[] = [];
+    if (context?.previousResult && Array.isArray(context.previousResult)) {
+      // Extract case numbers from previous results
+      caseNumbers = context.previousResult
+        .map(row => row.case_number)
+        .filter(Boolean);
 
-    if (error) throw error;
+      console.log('📋 Filtering documents by previous cases:', caseNumbers);
+    }
 
-    return {
-      type: 'document_search',
-      action: `Searching documents for "${searchTerms}"`,
-      data: data,
-      prompt: `You are a legal assistant helping with document search. The user asked: "${query}"
+    let data, error;
 
-I searched through all documents for terms related to "${searchTerms}" and found ${data.length} matching documents.
+    if (caseNumbers.length > 0) {
+      // Query documents for specific cases from context
+      const result = await supabase
+        .from('documents')
+        .select(`
+          id,
+          title,
+          document_type,
+          date_filed,
+          file_size,
+          projects!inner (case_number, title)
+        `)
+        .in('projects.case_number', caseNumbers)
+        .order('date_filed', { ascending: false })
+        .limit(50);
+
+      data = result.data;
+      error = result.error;
+
+      if (error) throw error;
+
+      return {
+        type: 'document_search',
+        action: `Finding documents for ${caseNumbers.length} case(s) from previous result`,
+        data: data,
+        prompt: `You are a legal assistant helping with document search. The user asked: "${query}"
+
+Based on the previous query results, I found documents for these ${caseNumbers.length} cases: ${caseNumbers.join(', ')}
+
+Found ${data?.length || 0} documents.
+
+Present the results:
+- Total documents found for these cases
+- Breakdown by document type
+- Breakdown by case
+- Most recent documents
+
+Format as a table showing: Case Number, Document Title, Type, Date Filed.
+
+Be professional and helpful.`,
+        sqlQuery: `SELECT d.title, d.document_type, p.case_number FROM documents d JOIN projects p ON d.project_id = p.id WHERE p.case_number IN (${caseNumbers.map(cn => `'${cn}'`).join(', ')})`
+      };
+
+    } else {
+      // No context - fall back to text search
+      const searchTerms = query
+        .toLowerCase()
+        .replace(/search|find|documents?|for|about|containing|with|mentioning|related|these|those|this|that|cases?/g, '')
+        .trim();
+
+      const result = await supabase
+        .from('documents')
+        .select(`
+          title,
+          document_type,
+          date_filed,
+          projects (case_number, title)
+        `)
+        .textSearch('content', searchTerms, {
+          type: 'websearch',
+          config: 'english'
+        })
+        .limit(20);
+
+      data = result.data;
+      error = result.error;
+
+      if (error) throw error;
+
+      return {
+        type: 'document_search',
+        action: `Searching documents for "${searchTerms}"`,
+        data: data,
+        prompt: `You are a legal assistant helping with document search. The user asked: "${query}"
+
+I searched through all documents for terms related to "${searchTerms}" and found ${data?.length || 0} matching documents.
 
 Present the results:
 - Total documents found
@@ -266,8 +325,9 @@ Present the results:
 Format as a table showing: Document Title, Type, Case, Date Filed.
 
 If no results, suggest alternative search terms.`,
-      sqlQuery: `SELECT title, document_type FROM documents WHERE to_tsvector('english', content) @@ websearch_to_tsquery('english', '${searchTerms}')`
-    };
+        sqlQuery: `SELECT title, document_type FROM documents WHERE to_tsvector('english', content) @@ websearch_to_tsquery('english', '${searchTerms}')`
+      };
+    }
 
   } catch (error: any) {
     return {
