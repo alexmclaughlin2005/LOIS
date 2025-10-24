@@ -57,13 +57,13 @@ export function classifyQuery(query: string): ClassificationResult {
       'find', 'show', 'lookup', 'get', 'search for'
     ],
     patterns: [
-      /^[A-Z][a-z]+ [A-Z][a-z]+$/, // Proper name: "John Smith"
-      /^[A-Z][a-z]+ [A-Z]\. [A-Z][a-z]+$/, // Name with middle initial: "John A. Smith"
-      /^(CV|CR|PI|FL|CR|IP|RE|EM)-\d{4}-\d{5}$/, // Case number format
-      /^find [A-Z][a-z]+ [A-Z][a-z]+$/i, // "find John Smith"
-      /^show me [A-Z][a-z]+ [A-Z][a-z]+$/i, // "show me John Smith"
-      /^(lookup|get|search for) [A-Z][a-z]+ [A-Z][a-z]+$/i, // "lookup John Smith"
-      /^[A-Z][a-z]+$/ // Single name: "Smith"
+      /^[A-Z][a-zA-Z]+ [A-Z][a-zA-Z]+$/, // Proper name: "John Smith", "Harold McLaughlin"
+      /^[A-Z][a-zA-Z]+ [A-Z]\. [A-Z][a-zA-Z]+$/, // Name with middle initial: "John A. Smith"
+      /^(CV|CR|PI|FL|IP|RE|EM)-\d{4}-\d{5}$/, // Case number format
+      /^find [A-Z][a-zA-Z]+ [A-Z][a-zA-Z]+$/i, // "find John Smith"
+      /^show me [A-Z][a-zA-Z]+ [A-Z][a-zA-Z]+$/i, // "show me John Smith"
+      /^(lookup|get|search for) [A-Z][a-zA-Z]+ [A-Z][a-zA-Z]+$/i, // "lookup John Smith"
+      /^[A-Z][a-zA-Z]+$/ // Single name: "Smith", "McLaughlin"
     ]
   };
 
