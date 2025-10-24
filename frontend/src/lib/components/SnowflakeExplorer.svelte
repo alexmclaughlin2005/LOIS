@@ -1,0 +1,537 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+
+	let loading = false;
+	let error = '';
+
+	let databases: any[] = [];
+	let schemas: any[] = [];
+	let tables: any[] = [];
+	let columns: any[] = [];
+	let previewData: any[] = [];
+
+	let selectedDatabase: string | null = null;
+	let selectedSchema: string | null = null;
+	let selectedTable: string | null = null;
+
+	let activeView: 'databases' | 'schemas' | 'tables' | 'columns' | 'preview' = 'databases';
+
+	onMount(async () => {
+		await loadDatabases();
+	});
+
+	async function loadDatabases() {
+		loading = true;
+		error = '';
+		try {
+			const response = await fetch('/api/snowflake/explore?type=databases');
+			const data = await response.json();
+			if (data.success) {
+				databases = data.data;
+				activeView = 'databases';
+			} else {
+				error = data.error;
+			}
+		} catch (e: any) {
+			error = e.message;
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function selectDatabase(dbName: string) {
+		selectedDatabase = dbName;
+		selectedSchema = null;
+		selectedTable = null;
+		schemas = [];
+		tables = [];
+		columns = [];
+		previewData = [];
+
+		loading = true;
+		error = '';
+		try {
+			const response = await fetch(`/api/snowflake/explore?type=schemas&database=${dbName}`);
+			const data = await response.json();
+			if (data.success) {
+				schemas = data.data;
+				activeView = 'schemas';
+			} else {
+				error = data.error;
+			}
+		} catch (e: any) {
+			error = e.message;
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function selectSchema(schemaName: string) {
+		selectedSchema = schemaName;
+		selectedTable = null;
+		tables = [];
+		columns = [];
+		previewData = [];
+
+		loading = true;
+		error = '';
+		try {
+			const response = await fetch(
+				`/api/snowflake/explore?type=tables&database=${selectedDatabase}&schema=${schemaName}`
+			);
+			const data = await response.json();
+			if (data.success) {
+				tables = data.data;
+				activeView = 'tables';
+			} else {
+				error = data.error;
+			}
+		} catch (e: any) {
+			error = e.message;
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function selectTable(tableName: string) {
+		selectedTable = tableName;
+		columns = [];
+		previewData = [];
+
+		loading = true;
+		error = '';
+		try {
+			// Load columns
+			const colResponse = await fetch(
+				`/api/snowflake/explore?type=columns&database=${selectedDatabase}&schema=${selectedSchema}&table=${tableName}`
+			);
+			const colData = await colResponse.json();
+			if (colData.success) {
+				columns = colData.data;
+				activeView = 'columns';
+			} else {
+				error = colData.error;
+			}
+
+			// Load preview data
+			const previewResponse = await fetch(
+				`/api/snowflake/explore?type=preview&database=${selectedDatabase}&schema=${selectedSchema}&table=${tableName}&limit=10`
+			);
+			const previewDataResult = await previewResponse.json();
+			if (previewDataResult.success) {
+				previewData = previewDataResult.data;
+			}
+		} catch (e: any) {
+			error = e.message;
+		} finally {
+			loading = false;
+		}
+	}
+
+	function goBack() {
+		if (activeView === 'columns' || activeView === 'preview') {
+			selectedTable = null;
+			columns = [];
+			previewData = [];
+			activeView = 'tables';
+		} else if (activeView === 'tables') {
+			selectedSchema = null;
+			tables = [];
+			activeView = 'schemas';
+		} else if (activeView === 'schemas') {
+			selectedDatabase = null;
+			schemas = [];
+			activeView = 'databases';
+		}
+	}
+
+	function showPreview() {
+		activeView = 'preview';
+	}
+
+	function showColumns() {
+		activeView = 'columns';
+	}
+</script>
+
+<div class="snowflake-explorer">
+	<div class="explorer-header">
+		<h2>Snowflake Data Explorer</h2>
+		<div class="breadcrumb">
+			<button class="breadcrumb-item" on:click={loadDatabases}>Databases</button>
+			{#if selectedDatabase}
+				<span class="breadcrumb-sep">/</span>
+				<button class="breadcrumb-item" on:click={() => selectDatabase(selectedDatabase)}>
+					{selectedDatabase}
+				</button>
+			{/if}
+			{#if selectedSchema}
+				<span class="breadcrumb-sep">/</span>
+				<button class="breadcrumb-item" on:click={() => selectSchema(selectedSchema)}>
+					{selectedSchema}
+				</button>
+			{/if}
+			{#if selectedTable}
+				<span class="breadcrumb-sep">/</span>
+				<span class="breadcrumb-item active">{selectedTable}</span>
+			{/if}
+		</div>
+	</div>
+
+	{#if error}
+		<div class="error-message">
+			{error}
+		</div>
+	{/if}
+
+	{#if loading}
+		<div class="loading">Loading...</div>
+	{:else}
+		{#if activeView === 'databases'}
+			<div class="explorer-section">
+				<h3>Databases ({databases.length})</h3>
+				<div class="item-list">
+					{#each databases as db}
+						<button class="item-card" on:click={() => selectDatabase(db.name)}>
+							<div class="item-icon">🗄️</div>
+							<div class="item-info">
+								<div class="item-name">{db.name}</div>
+								<div class="item-meta">Owner: {db.owner || 'N/A'}</div>
+							</div>
+						</button>
+					{/each}
+				</div>
+			</div>
+		{:else if activeView === 'schemas'}
+			<div class="explorer-section">
+				<h3>Schemas in {selectedDatabase} ({schemas.length})</h3>
+				<div class="item-list">
+					{#each schemas as schema}
+						<button class="item-card" on:click={() => selectSchema(schema.name)}>
+							<div class="item-icon">📁</div>
+							<div class="item-info">
+								<div class="item-name">{schema.name}</div>
+								<div class="item-meta">Owner: {schema.owner || 'N/A'}</div>
+							</div>
+						</button>
+					{/each}
+				</div>
+			</div>
+		{:else if activeView === 'tables'}
+			<div class="explorer-section">
+				<h3>Tables & Views in {selectedDatabase}.{selectedSchema} ({tables.length})</h3>
+				<div class="item-list">
+					{#each tables as table}
+						<button class="item-card" on:click={() => selectTable(table.name)}>
+							<div class="item-icon">{table.kind === 'VIEW' ? '👁️' : '📊'}</div>
+							<div class="item-info">
+								<div class="item-name">{table.name}</div>
+								<div class="item-meta">
+									{table.kind} • {table.rows.toLocaleString()} rows
+								</div>
+							</div>
+						</button>
+					{/each}
+				</div>
+			</div>
+		{:else if activeView === 'columns' || activeView === 'preview'}
+			<div class="explorer-section">
+				<div class="table-detail-header">
+					<h3>{selectedDatabase}.{selectedSchema}.{selectedTable}</h3>
+					<div class="view-tabs">
+						<button
+							class="tab-button"
+							class:active={activeView === 'columns'}
+							on:click={showColumns}
+						>
+							Schema ({columns.length} columns)
+						</button>
+						<button
+							class="tab-button"
+							class:active={activeView === 'preview'}
+							on:click={showPreview}
+						>
+							Preview ({previewData.length} rows)
+						</button>
+					</div>
+				</div>
+
+				{#if activeView === 'columns'}
+					<div class="columns-table">
+						<table>
+							<thead>
+								<tr>
+									<th>Column Name</th>
+									<th>Type</th>
+									<th>Nullable</th>
+									<th>Primary Key</th>
+									<th>Comment</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each columns as col}
+									<tr>
+										<td class="column-name">{col.name}</td>
+										<td class="column-type">{col.type}</td>
+										<td>{col.null ? 'Yes' : 'No'}</td>
+										<td>{col.primary_key ? '🔑' : ''}</td>
+										<td class="column-comment">{col.comment || '-'}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				{:else}
+					<div class="preview-table">
+						{#if previewData.length > 0}
+							<table>
+								<thead>
+									<tr>
+										{#each Object.keys(previewData[0]) as key}
+											<th>{key}</th>
+										{/each}
+									</tr>
+								</thead>
+								<tbody>
+									{#each previewData as row}
+										<tr>
+											{#each Object.values(row) as value}
+												<td>{value !== null && value !== undefined ? value : '-'}</td>
+											{/each}
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						{:else}
+							<div class="empty-state">No preview data available</div>
+						{/if}
+					</div>
+				{/if}
+			</div>
+		{/if}
+	{/if}
+</div>
+
+<style>
+	.snowflake-explorer {
+		background: var(--color-surface);
+		border-radius: 12px;
+		padding: 24px;
+		margin-top: 24px;
+	}
+
+	.explorer-header {
+		margin-bottom: 24px;
+	}
+
+	.explorer-header h2 {
+		margin: 0 0 12px 0;
+		font-size: 24px;
+		font-weight: 600;
+		color: var(--color-text-primary);
+	}
+
+	.breadcrumb {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 14px;
+	}
+
+	.breadcrumb-item {
+		background: none;
+		border: none;
+		color: var(--color-primary);
+		cursor: pointer;
+		padding: 4px 8px;
+		border-radius: 4px;
+		font-family: inherit;
+	}
+
+	.breadcrumb-item:hover {
+		background: var(--color-primary-hover);
+	}
+
+	.breadcrumb-item.active {
+		color: var(--color-text-primary);
+		cursor: default;
+		font-weight: 500;
+	}
+
+	.breadcrumb-item.active:hover {
+		background: none;
+	}
+
+	.breadcrumb-sep {
+		color: var(--color-text-tertiary);
+	}
+
+	.error-message {
+		background: #fee;
+		border: 1px solid #fcc;
+		color: #c33;
+		padding: 12px;
+		border-radius: 8px;
+		margin-bottom: 16px;
+	}
+
+	.loading {
+		text-align: center;
+		padding: 40px;
+		color: var(--color-text-secondary);
+	}
+
+	.explorer-section h3 {
+		margin: 0 0 16px 0;
+		font-size: 18px;
+		font-weight: 600;
+		color: var(--color-text-primary);
+	}
+
+	.item-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 12px;
+	}
+
+	.item-card {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 16px;
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all 0.2s;
+		text-align: left;
+		font-family: inherit;
+	}
+
+	.item-card:hover {
+		background: var(--color-surface-hover);
+		border-color: var(--color-primary);
+		transform: translateY(-2px);
+	}
+
+	.item-icon {
+		font-size: 32px;
+		line-height: 1;
+	}
+
+	.item-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.item-name {
+		font-weight: 600;
+		color: var(--color-text-primary);
+		margin-bottom: 4px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.item-meta {
+		font-size: 13px;
+		color: var(--color-text-secondary);
+	}
+
+	.table-detail-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 16px;
+	}
+
+	.view-tabs {
+		display: flex;
+		gap: 8px;
+	}
+
+	.tab-button {
+		padding: 8px 16px;
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		cursor: pointer;
+		font-family: inherit;
+		font-size: 14px;
+		color: var(--color-text-secondary);
+		transition: all 0.2s;
+	}
+
+	.tab-button:hover {
+		background: var(--color-surface-hover);
+		color: var(--color-text-primary);
+	}
+
+	.tab-button.active {
+		background: var(--color-primary);
+		color: white;
+		border-color: var(--color-primary);
+	}
+
+	.columns-table,
+	.preview-table {
+		overflow-x: auto;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 14px;
+	}
+
+	thead {
+		background: var(--color-bg);
+		position: sticky;
+		top: 0;
+	}
+
+	th {
+		padding: 12px;
+		text-align: left;
+		font-weight: 600;
+		color: var(--color-text-primary);
+		border-bottom: 2px solid var(--color-border);
+	}
+
+	td {
+		padding: 12px;
+		border-bottom: 1px solid var(--color-border);
+		color: var(--color-text-secondary);
+	}
+
+	tr:last-child td {
+		border-bottom: none;
+	}
+
+	tbody tr:hover {
+		background: var(--color-surface-hover);
+	}
+
+	.column-name {
+		font-weight: 500;
+		color: var(--color-text-primary);
+	}
+
+	.column-type {
+		font-family: 'Monaco', 'Courier New', monospace;
+		color: var(--color-primary);
+	}
+
+	.column-comment {
+		font-size: 13px;
+		color: var(--color-text-tertiary);
+	}
+
+	.empty-state {
+		padding: 40px;
+		text-align: center;
+		color: var(--color-text-tertiary);
+	}
+</style>

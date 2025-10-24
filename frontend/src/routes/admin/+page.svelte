@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import SnowflakeExplorer from '$lib/components/SnowflakeExplorer.svelte';
 
 	interface ChatSession {
 		id: string;
@@ -16,6 +17,7 @@
 	let loading = true;
 	let selectedSessions = new Set<string>();
 	let includeArchived = false;
+	let activeTab: 'chats' | 'snowflake' = 'chats';
 
 	onMount(async () => {
 		await loadSessions();
@@ -133,9 +135,28 @@
 	<main class="admin-main">
 		<div class="content-wrapper">
 			<div class="page-header">
-				<h2>Chat Session Management</h2>
-				<p class="subtitle">View and manage all chat conversations</p>
+				<h2>Admin Dashboard</h2>
+				<p class="subtitle">Manage chat sessions and explore data sources</p>
 			</div>
+
+			<div class="tabs">
+				<button
+					class="tab"
+					class:active={activeTab === 'chats'}
+					on:click={() => activeTab = 'chats'}
+				>
+					Chat Sessions
+				</button>
+				<button
+					class="tab"
+					class:active={activeTab === 'snowflake'}
+					on:click={() => activeTab = 'snowflake'}
+				>
+					Snowflake Data
+				</button>
+			</div>
+
+			{#if activeTab === 'chats'}
 
 			<div class="controls">
 				<div class="controls-left">
@@ -236,6 +257,10 @@
 				<div class="summary">
 					<p>Total: {sessions.length} session(s)</p>
 				</div>
+			{/if}
+
+			{:else if activeTab === 'snowflake'}
+				<SnowflakeExplorer />
 			{/if}
 		</div>
 	</main>
@@ -575,5 +600,36 @@
 
 	.summary p {
 		margin: 0;
+	}
+
+	.tabs {
+		display: flex;
+		gap: 8px;
+		margin-bottom: 24px;
+		border-bottom: 2px solid var(--color-border);
+		padding-bottom: 0;
+	}
+
+	.tab {
+		padding: 12px 24px;
+		background: none;
+		border: none;
+		border-bottom: 3px solid transparent;
+		font-size: 15px;
+		font-weight: 500;
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		transition: all 0.2s;
+		margin-bottom: -2px;
+	}
+
+	.tab:hover {
+		color: var(--color-text-primary);
+		background: rgba(0, 0, 0, 0.02);
+	}
+
+	.tab.active {
+		color: var(--color-brand-coral);
+		border-bottom-color: var(--color-brand-coral);
 	}
 </style>
