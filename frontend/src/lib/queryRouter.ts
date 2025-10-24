@@ -355,8 +355,19 @@ async function handleGeneralQuestion(query: string, context?: QueryContext): Pro
 
     if (isDocumentQuery && context?.previousResult && Array.isArray(context.previousResult)) {
       // Extract case numbers from previous results
+      // Handle different result structures:
+      // 1. Direct case queries: { case_number: "CV-2025-001" }
+      // 2. Document queries: { projects: { case_number: "CV-2025-001" } }
+      // 3. Document results with project_id: use project_id to get case_number
       caseNumbers = context.previousResult
-        .map(row => row.case_number)
+        .map(row => {
+          // Try direct case_number first
+          if (row.case_number) return row.case_number;
+          // Try nested projects.case_number
+          if (row.projects?.case_number) return row.projects.case_number;
+          // If we have project_id but no case_number, we'll need to fetch it
+          return null;
+        })
         .filter(Boolean);
 
       console.log('📄 Fetching documents for context:', caseNumbers);

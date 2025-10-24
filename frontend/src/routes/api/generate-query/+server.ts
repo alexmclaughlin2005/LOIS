@@ -293,7 +293,7 @@ Generate a PostgreSQL query to answer this question. Respond with ONLY a JSON ob
    - Case search: SELECT case_number, title, status FROM projects WHERE status = 'Open' LIMIT 100
    - Time entries: SELECT project_id, SUM(hours) as total_hours FROM time_entries GROUP BY project_id ORDER BY total_hours DESC LIMIT 100
    - Upcoming events: SELECT title, start_time FROM calendar_entries WHERE start_time > CURRENT_DATE ORDER BY start_time ASC LIMIT 50
-   - Document search: SELECT title, document_type FROM documents WHERE title ILIKE '%search%' LIMIT 100
+   - Document search: **ALWAYS include case_number when querying documents**: SELECT d.title, d.document_type, p.case_number FROM documents d INNER JOIN projects p ON d.project_id = p.id WHERE d.title ILIKE '%search%' LIMIT 100
    - Custom field filter: SELECT case_number, (custom_fields->>'field')::numeric as value FROM projects WHERE (custom_fields->>'field')::numeric > 10000
 
 8. **Searching for Names/Parties**:
