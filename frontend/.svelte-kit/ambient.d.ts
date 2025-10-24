@@ -27,6 +27,8 @@
  */
 declare module '$env/static/private' {
 	export const ANTHROPIC_API_KEY: string;
+	export const SUPABASE_URL: string;
+	export const SUPABASE_SERVICE_ROLE_KEY: string;
 	export const NoDefaultCurrentDirectoryInExePath: string;
 	export const CLAUDE_CODE_ENTRYPOINT: string;
 	export const VSCODE_CRASH_REPORTER_PROCESS_TYPE: string;
@@ -75,6 +77,7 @@ declare module '$env/static/private' {
 	export const XPC_FLAGS: string;
 	export const FNM_MULTISHELL_PATH: string;
 	export const npm_package_engines_node: string;
+	export const NODE_TLS_REJECT_UNAUTHORIZED: string;
 	export const npm_config_node_gyp: string;
 	export const npm_package_version: string;
 	export const XPC_SERVICE_NAME: string;
@@ -133,6 +136,8 @@ declare module '$env/static/public' {
 declare module '$env/dynamic/private' {
 	export const env: {
 		ANTHROPIC_API_KEY: string;
+		SUPABASE_URL: string;
+		SUPABASE_SERVICE_ROLE_KEY: string;
 		NoDefaultCurrentDirectoryInExePath: string;
 		CLAUDE_CODE_ENTRYPOINT: string;
 		VSCODE_CRASH_REPORTER_PROCESS_TYPE: string;
@@ -181,6 +186,7 @@ declare module '$env/dynamic/private' {
 		XPC_FLAGS: string;
 		FNM_MULTISHELL_PATH: string;
 		npm_package_engines_node: string;
+		NODE_TLS_REJECT_UNAUTHORIZED: string;
 		npm_config_node_gyp: string;
 		npm_package_version: string;
 		XPC_SERVICE_NAME: string;

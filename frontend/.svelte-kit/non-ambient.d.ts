@@ -27,23 +27,29 @@ export {};
 
 declare module "$app/types" {
 	export interface AppTypes {
-		RouteId(): "/" | "/api" | "/api/chat" | "/api/classify-query" | "/api/execute-query" | "/api/generate-query" | "/api/generate-response" | "/api/test-query" | "/chat" | "/results";
+		RouteId(): "/" | "/admin" | "/api" | "/api/chat-sessions" | "/api/chat-sessions/[id]" | "/api/chat" | "/api/classify-query" | "/api/execute-query" | "/api/generate-query" | "/api/generate-response" | "/api/snowflake" | "/api/snowflake/query" | "/api/snowflake/test" | "/api/test-query" | "/chat" | "/results";
 		RouteParams(): {
-			
+			"/api/chat-sessions/[id]": { id: string }
 		};
 		LayoutParams(): {
-			"/": Record<string, never>;
-			"/api": Record<string, never>;
-			"/api/chat": Record<string, never>;
+			"/": { id?: string };
+			"/admin": Record<string, never>;
+			"/api": { id?: string };
+			"/api/chat-sessions": { id?: string };
+			"/api/chat-sessions/[id]": { id: string };
+			"/api/chat": { id?: string };
 			"/api/classify-query": Record<string, never>;
 			"/api/execute-query": Record<string, never>;
 			"/api/generate-query": Record<string, never>;
 			"/api/generate-response": Record<string, never>;
+			"/api/snowflake": Record<string, never>;
+			"/api/snowflake/query": Record<string, never>;
+			"/api/snowflake/test": Record<string, never>;
 			"/api/test-query": Record<string, never>;
 			"/chat": Record<string, never>;
 			"/results": Record<string, never>
 		};
-		Pathname(): "/" | "/api" | "/api/" | "/api/chat" | "/api/chat/" | "/api/classify-query" | "/api/classify-query/" | "/api/execute-query" | "/api/execute-query/" | "/api/generate-query" | "/api/generate-query/" | "/api/generate-response" | "/api/generate-response/" | "/api/test-query" | "/api/test-query/" | "/chat" | "/chat/" | "/results" | "/results/";
+		Pathname(): "/" | "/admin" | "/admin/" | "/api" | "/api/" | "/api/chat-sessions" | "/api/chat-sessions/" | `/api/chat-sessions/${string}` & {} | `/api/chat-sessions/${string}/` & {} | "/api/chat" | "/api/chat/" | "/api/classify-query" | "/api/classify-query/" | "/api/execute-query" | "/api/execute-query/" | "/api/generate-query" | "/api/generate-query/" | "/api/generate-response" | "/api/generate-response/" | "/api/snowflake" | "/api/snowflake/" | "/api/snowflake/query" | "/api/snowflake/query/" | "/api/snowflake/test" | "/api/snowflake/test/" | "/api/test-query" | "/api/test-query/" | "/chat" | "/chat/" | "/results" | "/results/";
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
 		Asset(): string & {};
 	}

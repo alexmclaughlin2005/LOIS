@@ -8,7 +8,7 @@ export default defineConfig({
 	},
 	build: {
 		rollupOptions: {
-			external: ['pg']
+			external: ['pg', 'snowflake-sdk']
 		}
 	}
 });
