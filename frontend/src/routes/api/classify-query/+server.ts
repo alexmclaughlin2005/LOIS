@@ -9,13 +9,16 @@ const anthropic = new Anthropic({
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		const { query } = await request.json();
+		const { query, context } = await request.json();
 
 		if (!query || typeof query !== 'string') {
 			return json({ error: 'Query is required' }, { status: 400 });
 		}
 
 		console.log('🤖 Classifying query with LLM:', query);
+		if (context?.previousQuery) {
+			console.log('📜 Has context from previous query:', context.previousQuery);
+		}
 
 		// Use Claude to classify the query
 		const message = await anthropic.messages.create({

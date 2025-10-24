@@ -48,6 +48,11 @@
 	let isStreaming = false;
 	let isStreamingJSON = false; // Flag for when we're streaming JSON
 	let isProcessingData = false; // Flag for when we detect JSON and are processing it
+
+	// Conversation context tracking
+	let lastQueryResult: any = null;
+	let lastQuerySql: string | undefined = undefined;
+	let lastQuery: string = '';
 	let showResultsView = false;
 	let currentResultsData: { title: string; subtitle: string; data: Array<Record<string, any>> } | null = null;
 	let showRoutinesLibrary = false;
@@ -354,9 +359,21 @@
 			// Use query router to classify and handle the query
 			console.log('🔍 Routing query:', userMessage);
 
+			// Build context from previous query
+			const context = lastQueryResult ? {
+				previousQuery: lastQuery,
+				previousResult: lastQueryResult,
+				previousSql: lastQuerySql
+			} : undefined;
+
 			// Route the query through our classification system
-			const queryResult = await routeQuery(userMessage);
+			const queryResult = await routeQuery(userMessage, context);
 			console.log('📊 Query result:', queryResult);
+
+			// Save context for next query
+			lastQuery = userMessage;
+			lastQueryResult = queryResult.data;
+			lastQuerySql = queryResult.sqlQuery;
 
 			// Set query processing state for indicator
 			currentQueryType = queryResult.type;

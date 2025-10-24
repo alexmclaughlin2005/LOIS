@@ -183,13 +183,17 @@ Your database contains legal case management data with the following tables:
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		const { query } = await request.json();
+		const { query, context } = await request.json();
 
 		if (!query || typeof query !== 'string') {
 			return json({ error: 'Query is required' }, { status: 400 });
 		}
 
 		console.log('🔍 Generating SQL for query:', query);
+		if (context?.previousQuery) {
+			console.log('📜 With context - Previous query:', context.previousQuery);
+			console.log('📊 Previous result count:', Array.isArray(context.previousResult) ? context.previousResult.length : 'unknown');
+		}
 
 		// Use Claude to generate the SQL query
 		const message = await anthropic.messages.create({
@@ -202,7 +206,24 @@ export const POST: RequestHandler = async ({ request }) => {
 
 ${DATABASE_SCHEMA}
 
-User's natural language query: "${query}"
+${context?.previousQuery ? `## Conversation Context
+
+**Previous query**: "${context.previousQuery}"
+**Previous SQL**: ${context.previousSql || 'N/A'}
+**Previous result**: Returned ${Array.isArray(context.previousResult) ? context.previousResult.length + ' rows' : 'data'}
+
+${Array.isArray(context.previousResult) && context.previousResult.length > 0 ? `
+**Sample of previous results** (first few rows):
+${JSON.stringify(context.previousResult.slice(0, 3), null, 2)}
+` : ''}
+
+The user is now asking a FOLLOW-UP question that may reference this previous data.
+- If they say "these cases" or "those cases", they mean the ${Array.isArray(context.previousResult) ? context.previousResult.length : 0} cases from the previous query
+- If they say "this case", they mean the specific case from the previous result
+- You may need to add WHERE conditions to filter the previous results further
+- Consider using the previous SQL as a base and adding additional filters
+
+` : ''}User's natural language query: "${query}"
 
 Generate a PostgreSQL query to answer this question. Respond with ONLY a JSON object in this exact format:
 {

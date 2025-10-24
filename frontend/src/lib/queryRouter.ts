@@ -8,6 +8,13 @@
 import type { QueryType } from './queryClassifier';
 import { supabase } from './supabase';
 
+export interface QueryContext {
+  previousQuery?: string;
+  previousResult?: any;
+  previousSql?: string;
+  conversationHistory?: Array<{ query: string; result: any }>;
+}
+
 export interface QueryResult {
   type: QueryType;
   action: string; // User-friendly action description
@@ -125,14 +132,14 @@ const SCHEMA_CONTEXT = `
 /**
  * Handle SQL-style queries using LLM to generate SQL
  */
-async function handleSQLQuery(query: string): Promise<QueryResult> {
+async function handleSQLQuery(query: string, context?: QueryContext): Promise<QueryResult> {
   try {
     // Step 1: Use LLM to generate SQL from natural language
     console.log('🤖 Requesting SQL generation from LLM...');
     const generateResponse = await fetch('/api/generate-query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query })
+      body: JSON.stringify({ query, context })
     });
 
     if (!generateResponse.ok) {
@@ -217,7 +224,7 @@ Be professional, concise, and helpful.`,
 /**
  * Handle document search queries
  */
-async function handleDocumentSearch(query: string): Promise<QueryResult> {
+async function handleDocumentSearch(query: string, context?: QueryContext): Promise<QueryResult> {
   // Extract search terms (remove common words)
   const searchTerms = query
     .toLowerCase()
@@ -276,7 +283,7 @@ If no results, suggest alternative search terms.`,
 /**
  * Handle general questions
  */
-async function handleGeneralQuestion(query: string): Promise<QueryResult> {
+async function handleGeneralQuestion(query: string, context?: QueryContext): Promise<QueryResult> {
   // For general questions, we'll provide context about the database
   // and let the LLM respond conversationally
 
@@ -343,15 +350,19 @@ Be friendly, professional, and helpful. You're here to make legal operations eas
 /**
  * Main router function - now uses LLM for classification
  */
-export async function routeQuery(query: string): Promise<QueryResult> {
+export async function routeQuery(query: string, context?: QueryContext): Promise<QueryResult> {
   try {
     // Use LLM to classify the query
     console.log('🔍 Routing query:', query);
+    if (context?.previousQuery) {
+      console.log('📜 Previous query:', context.previousQuery);
+      console.log('📊 Previous result count:', Array.isArray(context.previousResult) ? context.previousResult.length : 'N/A');
+    }
 
     const classifyResponse = await fetch('/api/classify-query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query })
+      body: JSON.stringify({ query, context })
     });
 
     if (!classifyResponse.ok) {
@@ -370,16 +381,16 @@ export async function routeQuery(query: string): Promise<QueryResult> {
     // Route to appropriate handler
     switch (type) {
       case 'sql':
-        return handleSQLQuery(query);
+        return handleSQLQuery(query, context);
 
       case 'document_search':
-        return handleDocumentSearch(query);
+        return handleDocumentSearch(query, context);
 
       case 'general':
-        return handleGeneralQuestion(query);
+        return handleGeneralQuestion(query, context);
 
       default:
-        return handleGeneralQuestion(query);
+        return handleGeneralQuestion(query, context);
     }
   } catch (error: any) {
     console.error('❌ Routing error:', error);
