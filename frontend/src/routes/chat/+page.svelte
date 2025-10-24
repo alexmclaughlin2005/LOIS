@@ -14,6 +14,7 @@
 	import { getOpenPersonalInjuryCases, getCasesWithHighMedicalExpenses } from '$lib/queries';
 	import { routeQuery, formatResultForDisplay } from '$lib/queryRouter';
 	import type { QueryType } from '$lib/queryClassifier';
+	import type { Routine } from '$lib/types/routine';
 
 	// Configure marked options
 	marked.setOptions({
@@ -692,6 +693,18 @@
 		}
 	}
 
+	function handleRunRoutine(routine: Routine) {
+		console.log('🔄 Running routine:', routine.name);
+		// Close the routines library
+		showRoutinesLibrary = false;
+		// Set the input to the routine's prompt
+		inputValue = routine.prompt;
+		// Auto-execute the routine
+		setTimeout(() => {
+			sendMessage();
+		}, 50);
+	}
+
 	// Handle demo responses with simulated streaming
 	async function handleDemoResponse(
 		responseText: string,
@@ -995,7 +1008,10 @@
 
 		<!-- Routines Library Panel -->
 		{#if showRoutinesLibrary}
-			<RoutinesLibrary onClose={() => showRoutinesLibrary = false} />
+			<RoutinesLibrary
+				onClose={() => showRoutinesLibrary = false}
+				onRunRoutine={handleRunRoutine}
+			/>
 		{/if}
 	</main>
 </div>

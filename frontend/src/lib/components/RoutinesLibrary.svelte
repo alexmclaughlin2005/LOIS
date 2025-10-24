@@ -1,16 +1,8 @@
 <script lang="ts">
-	export let onClose: () => void = () => {};
+	import { DEFAULT_ROUTINES, type Routine } from '$lib/types/routine';
 
-	type Routine = {
-		id: string;
-		name: string;
-		description: string;
-		schedule: string;
-		lastRun?: string;
-		organization?: string;
-		isPromoted?: boolean;
-		subroutines?: Array<{ name: string; schedule: string }>;
-	};
+	export let onClose: () => void = () => {};
+	export let onRunRoutine: (routine: Routine) => void = () => {};
 
 	let searchQuery = '';
 
@@ -70,65 +62,8 @@
 		}
 	];
 
-	// My routines data
-	const myRoutines: Routine[] = [
-		{
-			id: '5',
-			name: 'Meds > $100k',
-			description: 'Finds all cases where medical expenses exceed $100,000.',
-			schedule: 'Weekly on Friday',
-			lastRun: 'Oct 18, 2025'
-		},
-		{
-			id: '6',
-			name: 'Depos Next Month',
-			description: 'Lists all depositions scheduled for the upcoming month.',
-			schedule: 'Monthly on 1st',
-			lastRun: 'Oct 1, 2025'
-		},
-		{
-			id: '7',
-			name: 'Inactive Clients',
-			description: 'Alerts for clients with no communications in exceed 60 days.',
-			schedule: 'Every Monday',
-			lastRun: 'Oct 21, 2025'
-		},
-		{
-			id: '8',
-			name: 'Settlement Offers',
-			description: 'Track and report on all pending settlement offers and negotiations.',
-			schedule: 'Weekly on Tuesday',
-			lastRun: 'Oct 22, 2025'
-		},
-		{
-			id: '9',
-			name: 'Trial Prep Checklist',
-			description: 'Monitor trial preparation tasks and upcoming court appearances.',
-			schedule: 'Daily at 8:00 AM',
-			lastRun: 'Oct 23, 2025'
-		},
-		{
-			id: '10',
-			name: 'Statute of Limitations',
-			description: 'Alert on cases approaching statute of limitations deadlines.',
-			schedule: 'Daily at 7:00 AM',
-			lastRun: 'Oct 23, 2025'
-		},
-		{
-			id: '11',
-			name: 'New Case Intake',
-			description: 'Summary of new cases received and initial consultation schedules.',
-			schedule: 'Every Monday at 9:00 AM',
-			lastRun: 'Oct 21, 2025'
-		},
-		{
-			id: '12',
-			name: 'High Value Cases',
-			description: 'Track cases with potential settlement value over $500k.',
-			schedule: 'Monthly on 15th',
-			lastRun: 'Oct 15, 2025'
-		}
-	];
+	// My routines data - use DEFAULT_ROUTINES from types
+	const myRoutines: Routine[] = DEFAULT_ROUTINES;
 
 	let expandedRoutines: Set<string> = new Set();
 
@@ -330,49 +265,19 @@
 							<button class="details-link">Details →</button>
 						</div>
 						<div class="my-routine-actions">
+							<button class="btn-run" on:click={() => onRunRoutine(routine)} title="Run now">
+								<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+									<path
+										d="M4 2L12 8L4 14V2Z"
+										fill="currentColor"
+									/>
+								</svg>
+								Run
+							</button>
 							<button class="btn-icon" title="Edit">
 								<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
 									<path
 										d="M11.333 2.00004C11.5081 1.82494 11.716 1.68605 11.9447 1.59129C12.1735 1.49653 12.4187 1.44775 12.6663 1.44775C12.914 1.44775 13.1592 1.49653 13.3879 1.59129C13.6167 1.68605 13.8246 1.82494 13.9997 2.00004C14.1748 2.17513 14.3137 2.383 14.4084 2.61178C14.5032 2.84055 14.552 3.08575 14.552 3.33337C14.552 3.58099 14.5032 3.82619 14.4084 4.05497C14.3137 4.28374 14.1748 4.49161 13.9997 4.66671L5.33301 13.3334L2.66634 14L3.33301 11.3334L11.9997 2.66671L11.333 2.00004Z"
-										stroke="currentColor"
-										stroke-width="1.5"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									/>
-								</svg>
-							</button>
-							<button class="btn-icon" title="Share">
-								<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-									<path
-										d="M12 5.33337C12.7364 5.33337 13.3333 4.73642 13.3333 4.00004C13.3333 3.26366 12.7364 2.66671 12 2.66671C11.2636 2.66671 10.6667 3.26366 10.6667 4.00004C10.6667 4.73642 11.2636 5.33337 12 5.33337Z"
-										stroke="currentColor"
-										stroke-width="1.5"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									/>
-									<path
-										d="M4 10C4.73638 10 5.33333 9.40305 5.33333 8.66667C5.33333 7.93029 4.73638 7.33333 4 7.33333C3.26362 7.33333 2.66667 7.93029 2.66667 8.66667C2.66667 9.40305 3.26362 10 4 10Z"
-										stroke="currentColor"
-										stroke-width="1.5"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									/>
-									<path
-										d="M12 13.3334C12.7364 13.3334 13.3333 12.7364 13.3333 12C13.3333 11.2637 12.7364 10.6667 12 10.6667C11.2636 10.6667 10.6667 11.2637 10.6667 12C10.6667 12.7364 11.2636 13.3334 12 13.3334Z"
-										stroke="currentColor"
-										stroke-width="1.5"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									/>
-									<path
-										d="M5.19336 9.52667L10.8134 11.14"
-										stroke="currentColor"
-										stroke-width="1.5"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									/>
-									<path
-										d="M10.8067 4.86L5.19336 6.47333"
 										stroke="currentColor"
 										stroke-width="1.5"
 										stroke-linecap="round"
@@ -771,6 +676,27 @@
 		display: flex;
 		gap: 8px;
 		margin-top: 4px;
+	}
+
+	.btn-run {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		flex: 1;
+		padding: 8px 12px;
+		background: #161616;
+		color: white;
+		border: none;
+		border-radius: 6px;
+		cursor: pointer;
+		font-size: 13px;
+		font-weight: 500;
+		transition: all 0.15s;
+	}
+
+	.btn-run:hover {
+		background: #333;
 	}
 
 	.btn-icon {
