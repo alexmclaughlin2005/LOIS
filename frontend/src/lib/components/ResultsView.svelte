@@ -6,22 +6,27 @@
 	export let data: Array<Record<string, any>> = [];
 	export let onClose: () => void;
 
-	// View mode toggle: 'cards' or 'table'
-	let viewMode: 'cards' | 'table' = 'cards';
+	// View mode toggle: 'cards' or 'table' - default to table (list view)
+	let viewMode: 'cards' | 'table' = 'table';
 
-	// Figma design uses exactly 4 columns
-	// We'll either use the Figma column names if they exist, or take first 4 columns
+	// Determine which columns to display
 	let allColumns: string[] = data && Array.isArray(data) && data.length > 0 ? Object.keys(data[0]) : [];
 
-	// Check if data matches Figma structure
-	const hasFigmaColumns = ['project', 'type', 'phase', 'primary'].every(col =>
-		allColumns.map(c => c.toLowerCase()).includes(col)
-	);
+	// Define column widths for specific columns
+	const columnWidths: Record<string, string> = {
+		'case_number': '180px', // Wider to prevent wrapping
+		'title': 'auto',
+		'filing_date': '120px',
+		'jurisdiction': '200px'
+	};
 
-	// Use exactly 4 columns - either Figma columns or first 4 available
-	let columns: string[] = hasFigmaColumns
-		? ['project', 'type', 'phase', 'primary']
-		: allColumns.slice(0, 4);
+	// Use intelligent column selection based on available data
+	let columns: string[] = allColumns.slice(0, 4);
+
+	// Get width for a column
+	function getColumnWidth(column: string): string {
+		return columnWidths[column] || 'auto';
+	}
 
 	// First column should always have avatars (contains names/projects)
 	$: firstColumnKey = columns[0];
@@ -126,7 +131,7 @@
 						<thead>
 							<tr>
 								{#each columns as column}
-									<th>
+									<th style="width: {getColumnWidth(column)}">
 										<button class="column-header-btn" aria-label="Sort by {formatColumnHeader(column)}">
 											<span>{formatColumnHeader(column)}</span>
 											<svg class="filter-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -353,7 +358,7 @@
 	}
 
 	.results-table th {
-		padding: 10px 15px;
+		padding: 8px 15px;
 		text-align: left;
 		font-weight: 400;
 		font-size: 14px;
@@ -390,14 +395,14 @@
 	}
 
 	.results-table td {
-		padding: 12px 15px;
+		padding: 8px 15px;
 		border-bottom: 1px solid #E0E0E0;
 		color: #161616;
 		font-size: 14px;
 	}
 
 	.person-cell {
-		padding: 8px 15px;
+		padding: 6px 15px;
 	}
 
 	.person-content {
