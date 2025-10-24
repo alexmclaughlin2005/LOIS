@@ -6,9 +6,6 @@
  */
 
 import snowflake from 'snowflake-sdk';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { existsSync } from 'fs';
 import crypto from 'crypto';
 import { env } from '$env/dynamic/private';
 
@@ -32,9 +29,9 @@ export interface SnowflakeConfig {
  * 1. Environment variable: SNOWFLAKE_PRIVATE_KEY (for production/Vercel)
  * 2. Local file: app_testing_rsa_key.p8 (for local development)
  */
-function loadPrivateKey(): string | undefined {
+async function loadPrivateKey(): Promise<string | undefined> {
 	try {
-		let encryptedKey: string;
+		let encryptedKey: string | undefined;
 
 		// First, try to load from environment variable (production)
 		if (env.SNOWFLAKE_PRIVATE_KEY) {
@@ -42,13 +39,27 @@ function loadPrivateKey(): string | undefined {
 			encryptedKey = env.SNOWFLAKE_PRIVATE_KEY;
 		} else {
 			// Fallback to loading from file (local development)
-			const keyPath = join(process.cwd(), 'app_testing_rsa_key.p8');
-			if (!existsSync(keyPath)) {
-				console.warn('No private key found in environment or file system');
-				return undefined;
+			// Only attempt file read if we're not in a build environment
+			try {
+				// Dynamically import fs modules to avoid build-time issues
+				const { readFileSync } = await import('fs');
+				const { join } = await import('path');
+				const { existsSync } = await import('fs');
+
+				const keyPath = join(process.cwd(), 'app_testing_rsa_key.p8');
+				if (existsSync(keyPath)) {
+					console.log('Loading private key from file:', keyPath);
+					encryptedKey = readFileSync(keyPath, 'utf8');
+				}
+			} catch (fileError) {
+				// Silently fail if file system is not available (e.g., during Vercel build)
+				console.log('Private key file not accessible, will use password auth if available');
 			}
-			console.log('Loading private key from file:', keyPath);
-			encryptedKey = readFileSync(keyPath, 'utf8');
+		}
+
+		if (!encryptedKey) {
+			console.warn('No private key found in environment or file system');
+			return undefined;
 		}
 
 		// Decrypt the private key using the password
@@ -80,8 +91,8 @@ function loadPrivateKey(): string | undefined {
 /**
  * Get Snowflake connection configuration from environment variables
  */
-export function getSnowflakeConfig(): SnowflakeConfig {
-	const privateKey = loadPrivateKey();
+export async function getSnowflakeConfig(): Promise<SnowflakeConfig> {
+	const privateKey = await loadPrivateKey();
 
 	const config: SnowflakeConfig = {
 		account: env.SNOWFLAKE_ACCOUNT || '',
@@ -108,10 +119,10 @@ export function getSnowflakeConfig(): SnowflakeConfig {
 /**
  * Create a Snowflake connection
  */
-export function createSnowflakeConnection(): Promise<snowflake.Connection> {
-	return new Promise((resolve, reject) => {
-		const config = getSnowflakeConfig();
+export async function createSnowflakeConnection(): Promise<snowflake.Connection> {
+	const config = await getSnowflakeConfig();
 
+	return new Promise((resolve, reject) => {
 		const connection = snowflake.createConnection(config);
 
 		connection.connect((err, conn) => {
