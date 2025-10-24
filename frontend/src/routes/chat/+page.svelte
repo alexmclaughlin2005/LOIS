@@ -9,6 +9,7 @@
 	import RoutinesLibrary from '$lib/components/RoutinesLibrary.svelte';
 	import QueryProcessingIndicator from '$lib/components/QueryProcessingIndicator.svelte';
 	import ResultsRenderer from '$lib/components/results/ResultsRenderer.svelte';
+	import SavedPromptsLibrary from '$lib/components/SavedPromptsLibrary.svelte';
 	import { testConnection } from '$lib/supabase';
 	import { getOpenPersonalInjuryCases, getCasesWithHighMedicalExpenses } from '$lib/queries';
 	import { routeQuery, formatResultForDisplay } from '$lib/queryRouter';
@@ -63,6 +64,7 @@
 	let showResultsView = false;
 	let currentResultsData: { title: string; subtitle: string; data: Array<Record<string, any>> } | null = null;
 	let showRoutinesLibrary = false;
+	let showSavedPrompts = false;
 
 	// Demo mode: track conversation state for hardcoded demo flow
 	let demoMode = false; // Set to false to use query router
@@ -670,6 +672,26 @@
 		showResultsView = true;
 	}
 
+	function handleOpenSavedPrompts() {
+		showSavedPrompts = true;
+	}
+
+	function handleCloseSavedPrompts() {
+		showSavedPrompts = false;
+	}
+
+	function handleUsePrompt(promptText: string) {
+		inputValue = promptText;
+		showSavedPrompts = false;
+		// Auto-send if no placeholders
+		if (!promptText.includes('[') || !promptText.includes(']')) {
+			// Small timeout to ensure UI updates
+			setTimeout(() => {
+				sendMessage();
+			}, 50);
+		}
+	}
+
 	// Handle demo responses with simulated streaming
 	async function handleDemoResponse(
 		responseText: string,
@@ -928,7 +950,7 @@
 								<path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 							</svg>
 						</button>
-						<button class="input-button">
+						<button class="input-button" on:click={handleOpenSavedPrompts}>
 							<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
 								<path d="M7 1L8.5 5.5H13L9.5 8.5L11 13L7 10L3 13L4.5 8.5L1 5.5H5.5L7 1Z"/>
 							</svg>
@@ -1563,3 +1585,7 @@
 		}
 	}
 </style>
+
+{#if showSavedPrompts}
+	<SavedPromptsLibrary onUsePrompt={handleUsePrompt} onClose={handleCloseSavedPrompts} />
+{/if}
