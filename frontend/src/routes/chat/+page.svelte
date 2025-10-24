@@ -1116,6 +1116,11 @@
 				onRunRoutine={handleRunRoutine}
 			/>
 		{/if}
+
+		<!-- Saved Prompts Library Panel -->
+		{#if showSavedPrompts}
+			<SavedPromptsLibrary onUsePrompt={handleUsePrompt} onClose={handleCloseSavedPrompts} />
+		{/if}
 	</main>
 </div>
 
@@ -1691,7 +1696,3 @@
 		}
 	}
 </style>
-
-{#if showSavedPrompts}
-	<SavedPromptsLibrary onUsePrompt={handleUsePrompt} onClose={handleCloseSavedPrompts} />
-{/if}
