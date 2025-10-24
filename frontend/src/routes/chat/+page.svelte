@@ -66,6 +66,15 @@
 	let currentQueryType: QueryType | null = null;
 	let currentQueryAction: string = '';
 
+	// Query pattern tracking for routine suggestions
+	interface QueryPattern {
+		topic: string; // e.g., "personal_injury_discovery", "high_medical_expenses"
+		queries: string[]; // List of similar queries
+		lastSQL: string; // The most recent SQL for this pattern
+	}
+	let queryPatterns: QueryPattern[] = [];
+	let routineSuggestionShown = false; // Prevent multiple suggestions in same session
+
 	// Test database connection on mount
 	onMount(async () => {
 		console.log('🔌 Testing Supabase connection...');
@@ -284,6 +293,116 @@
 		currentResultsData = null;
 	}
 
+	/**
+	 * Extract a topic/pattern from SQL query for pattern matching
+	 */
+	function extractQueryTopic(sql: string, userQuery: string): string {
+		const sqlLower = sql.toLowerCase();
+		const queryLower = userQuery.toLowerCase();
+
+		// Extract key phrases that indicate what the query is about
+		let topic = '';
+
+		// Check for case types
+		if (sqlLower.includes("case_type = 'personal injury'")) topic += 'personal_injury_';
+		if (sqlLower.includes("case_type = 'corporate'")) topic += 'corporate_';
+		if (sqlLower.includes("case_type = 'family law'")) topic += 'family_law_';
+
+		// Check for status
+		if (sqlLower.includes("status = 'open'")) topic += 'open_';
+		if (sqlLower.includes("status = 'closed'")) topic += 'closed_';
+
+		// Check for phase
+		if (sqlLower.includes("phase = 'discovery'")) topic += 'discovery_';
+		if (sqlLower.includes("phase = 'trial'")) topic += 'trial_';
+		if (sqlLower.includes("phase = 'settlement'")) topic += 'settlement_';
+
+		// Check for specific conditions
+		if (sqlLower.includes('medical_expenses') && (sqlLower.includes('>') || sqlLower.includes('exceed'))) {
+			topic += 'high_medical_expenses_';
+		}
+		if (sqlLower.includes('settlement') && sqlLower.includes('amount')) {
+			topic += 'settlement_amounts_';
+		}
+		if (sqlLower.includes('billable') || sqlLower.includes('time_entries')) {
+			topic += 'billable_time_';
+		}
+
+		// If no specific pattern found, use general terms from user query
+		if (!topic) {
+			if (queryLower.includes('expense')) topic += 'expenses_';
+			if (queryLower.includes('time')) topic += 'time_';
+			if (queryLower.includes('document')) topic += 'documents_';
+			if (queryLower.includes('contact') || queryLower.includes('person')) topic += 'contacts_';
+		}
+
+		return topic || 'general_query';
+	}
+
+	/**
+	 * Track query pattern and suggest routine if user has queried similar topic 2+ times
+	 */
+	function trackQueryPattern(userQuery: string, sql: string) {
+		if (routineSuggestionShown) return; // Already suggested in this session
+
+		const topic = extractQueryTopic(sql, userQuery);
+		console.log('📊 Query topic:', topic);
+
+		// Find existing pattern or create new one
+		let pattern = queryPatterns.find(p => p.topic === topic);
+		if (pattern) {
+			pattern.queries.push(userQuery);
+			pattern.lastSQL = sql;
+		} else {
+			pattern = {
+				topic,
+				queries: [userQuery],
+				lastSQL: sql
+			};
+			queryPatterns.push(pattern);
+		}
+
+		// If user has queried this topic 2+ times, suggest creating a routine
+		if (pattern.queries.length >= 2) {
+			console.log('🔔 Suggesting routine creation for repeated query pattern');
+			suggestRoutineCreation(pattern);
+		}
+	}
+
+	/**
+	 * Show routine creation suggestion
+	 */
+	function suggestRoutineCreation(pattern: QueryPattern) {
+		routineSuggestionShown = true;
+
+		// Generate a friendly description from the most recent query
+		const latestQuery = pattern.queries[pattern.queries.length - 1];
+
+		messages = [
+			...messages,
+			{
+				role: 'assistant',
+				content: `I notice you've asked about this ${pattern.queries.length} times. Would you like to create a routine to automatically check this on a schedule?`,
+				showRoutineCreation: true,
+				routineCreationData: {
+					onSave: (routine: any) => {
+						messages = [
+							...messages.filter(m => !m.showRoutineCreation),
+							{
+								role: 'assistant',
+								content: `Perfect! I've created the routine "${routine.description}" to run every ${routine.every.toLowerCase()}. You can manage it in your Routines Library.`
+							}
+						];
+					},
+					onCancel: () => {
+						// Remove the routine creation card
+						messages = messages.filter(m => !m.showRoutineCreation);
+					}
+				}
+			}
+		];
+	}
+
 	async function sendMessage() {
 		if (!inputValue.trim()) return;
 
@@ -375,6 +494,11 @@
 			lastQuery = userMessage;
 			lastQueryResult = queryResult.data;
 			lastQuerySql = queryResult.sqlQuery;
+
+			// Track query pattern for routine suggestion (only for SQL queries with data)
+			if (queryResult.type === 'sql' && queryResult.sqlQuery && queryResult.data && !queryResult.error) {
+				trackQueryPattern(userMessage, queryResult.sqlQuery);
+			}
 
 			// Set query processing state for indicator
 			currentQueryType = queryResult.type;
