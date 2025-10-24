@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import { marked } from 'marked';
 	import ResultsView from '$lib/components/ResultsView.svelte';
 	import DataPreviewCard from '$lib/components/DataPreviewCard.svelte';
@@ -92,6 +93,17 @@
 
 			console.log(`📊 Found ${piCases.length} open PI cases in discovery`);
 			console.log(`💰 Found ${highExpenseCases.length} cases with medical expenses >$100k`);
+		}
+
+		// Check if there's a query parameter from the homepage
+		const query = $page.url.searchParams.get('q');
+		if (query) {
+			console.log('📥 Auto-executing query from homepage:', query);
+			inputValue = query;
+			// Wait a bit for the UI to be ready, then send the message
+			setTimeout(() => {
+				sendMessage();
+			}, 100);
 		}
 	});
 

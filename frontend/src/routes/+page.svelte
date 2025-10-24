@@ -1,5 +1,20 @@
 <script lang="ts">
-	// LOIS Landing Page - Conversational Interface
+	import { goto } from '$app/navigation';
+
+	let searchValue = '';
+
+	function handleSearch() {
+		if (searchValue.trim()) {
+			// Navigate to chat with the query
+			goto(`/chat?q=${encodeURIComponent(searchValue.trim())}`);
+		}
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			handleSearch();
+		}
+	}
 </script>
 
 <svelte:head>
@@ -113,6 +128,8 @@
 						type="text"
 						class="search-input"
 						placeholder="What would you like get done today?"
+						bind:value={searchValue}
+						on:keydown={handleKeydown}
 					/>
 					<div class="input-controls">
 						<div class="input-left">
@@ -142,7 +159,7 @@
 									<path d="M5 9C5 11.2091 6.79086 13 9 13M9 13C11.2091 13 13 11.2091 13 9M9 13V16M7 16H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
 								</svg>
 							</button>
-							<button class="ask-button">
+							<button class="ask-button" on:click={handleSearch}>
 								Ask LO\S
 								<span class="button-indicator"></span>
 							</button>
