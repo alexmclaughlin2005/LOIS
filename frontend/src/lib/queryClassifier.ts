@@ -28,17 +28,25 @@ export function classifyQuery(query: string): ClassificationResult {
       'count', 'sum', 'average', 'total', 'how many', 'show me all',
       'list all', 'find cases where', 'filter', 'group by', 'aggregate',
       'greater than', 'less than', 'between', 'in the last', 'during',
-      'statistics', 'breakdown', 'distribution', 'compare'
+      'statistics', 'breakdown', 'distribution', 'compare', 'exceeding',
+      'over', 'under', 'above', 'below', 'more than', 'fewer than',
+      // Database entity keywords
+      'time entries', 'hours', 'expenses', 'invoices', 'documents',
+      'calendar', 'tasks', 'contacts', 'cases', 'projects',
+      'billable', 'settlement', 'damages', 'fees'
     ],
     patterns: [
       /how many .* (cases|projects|clients|contacts)/,
       /show me .* (cases|projects) (where|with|that)/,
       /list .* (with|having|where)/,
-      /find .* (greater than|less than|between|exceeding)/,
+      /find .* (greater than|less than|between|exceeding|over|above|below)/,
       /what is the (total|average|sum|count)/,
-      /(medical expenses|settlement|damages|fees) (over|under|above|below|exceeding)/,
+      /(which|what) (cases|projects|clients|contacts|documents|time entries|expenses|invoices)/,
+      /(medical expenses|settlement|damages|fees|hours|time entries) (over|under|above|below|exceeding|greater than|less than)/,
       /cases in (discovery|trial|settlement|closed|open)/,
-      /(last|past) \d+ (days|weeks|months|years)/
+      /(last|past) \d+ (days|weeks|months|years)/,
+      /(exceeding|over|above|below|under|more than|less than) (\$?\d+|[a-z]+)/,
+      /(which|what) .* (exceeding|over|above|more than|greater than)/
     ]
   };
 
@@ -86,6 +94,18 @@ export function classifyQuery(query: string): ClassificationResult {
   sqlIndicators.patterns.forEach(pattern => {
     if (pattern.test(normalized)) sqlScore += 2;
   });
+
+  // Boost score for database entities (table names)
+  const databaseEntities = ['time entries', 'expenses', 'invoices', 'documents',
+                            'calendar', 'tasks', 'contacts', 'cases', 'projects'];
+  databaseEntities.forEach(entity => {
+    if (normalized.includes(entity)) sqlScore += 1.5;
+  });
+
+  // Boost score for numeric thresholds
+  if (/\d+\s*(hours|dollars|\$|cases|days|months)/.test(normalized)) {
+    sqlScore += 1;
+  }
 
   // Check Document indicators
   documentIndicators.keywords.forEach(keyword => {
@@ -160,7 +180,10 @@ export function getQueryExamples() {
       'List all cases filed in the last 30 days',
       'Find cases with settlement amounts between $50k and $100k',
       'How many cases do we have by case type?',
-      'Show me all open cases assigned to Sarah Johnson'
+      'Show me all open cases assigned to Sarah Johnson',
+      'Which cases have time entries exceeding 100 hours?',
+      'What projects have expenses over $10,000?',
+      'Which invoices are overdue?'
     ],
     document_search: [
       'Search documents for "settlement agreement"',
