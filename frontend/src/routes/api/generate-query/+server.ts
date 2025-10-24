@@ -206,22 +206,34 @@ export const POST: RequestHandler = async ({ request }) => {
 
 ${DATABASE_SCHEMA}
 
-${context?.previousQuery ? `## Conversation Context
+${context?.previousQuery && context.previousSql ? `## Conversation Context
 
 **Previous query**: "${context.previousQuery}"
-**Previous SQL**: ${context.previousSql || 'N/A'}
-**Previous result**: Returned ${Array.isArray(context.previousResult) ? context.previousResult.length + ' rows' : 'data'}
+**Previous SQL**:
+\`\`\`sql
+${context.previousSql}
+\`\`\`
 
 ${Array.isArray(context.previousResult) && context.previousResult.length > 0 ? `
-**Sample of previous results** (first few rows):
-${JSON.stringify(context.previousResult.slice(0, 3), null, 2)}
-` : ''}
+**Previous result**: Returned ${context.previousResult.length} rows
 
-The user is now asking a FOLLOW-UP question that may reference this previous data.
-- If they say "these cases" or "those cases", they mean the ${Array.isArray(context.previousResult) ? context.previousResult.length : 0} cases from the previous query
-- If they say "this case", they mean the specific case from the previous result
-- You may need to add WHERE conditions to filter the previous results further
-- Consider using the previous SQL as a base and adding additional filters
+**Sample of previous results** (first 2 rows):
+\`\`\`json
+${JSON.stringify(context.previousResult.slice(0, 2), null, 2)}
+\`\`\`
+
+The user is now asking a FOLLOW-UP question that may reference these ${context.previousResult.length} results.
+- If they say "these cases" or "those cases", they mean the ${context.previousResult.length} cases from the previous query
+- If they say "this case", they likely mean case: ${context.previousResult[0]?.case_number || 'the first result'}
+- Extract specific IDs/case numbers from the sample above to build your WHERE clause
+- You can filter the previous results by adding WHERE conditions
+` : `
+**Previous result**: Query executed successfully
+
+The user is asking a FOLLOW-UP question about the previous query.
+- Use the previous SQL as context to understand what data was queried
+- The follow-up may ask to filter, aggregate, or relate to that data
+`}
 
 ` : ''}User's natural language query: "${query}"
 
@@ -394,6 +406,14 @@ IMPORTANT: Respond ONLY with the JSON object. No markdown, no code blocks, no ad
 
 	} catch (error) {
 		console.error('❌ Error generating query:', error);
+
+		// Log detailed error for debugging
+		if (error instanceof Error) {
+			console.error('Error name:', error.name);
+			console.error('Error message:', error.message);
+			console.error('Error stack:', error.stack);
+		}
+
 		return json({
 			success: false,
 			error: error instanceof Error ? error.message : 'Failed to generate query'
