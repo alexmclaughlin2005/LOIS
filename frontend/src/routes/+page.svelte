@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import SavedPromptsLibrary from '$lib/components/SavedPromptsLibrary.svelte';
 
 	let searchValue = '';
+	let showSavedPrompts = false;
 
 	function handleSearch() {
 		if (searchValue.trim()) {
@@ -12,6 +14,23 @@
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
+			handleSearch();
+		}
+	}
+
+	function handleOpenSavedPrompts() {
+		showSavedPrompts = true;
+	}
+
+	function handleCloseSavedPrompts() {
+		showSavedPrompts = false;
+	}
+
+	function handleUsePrompt(promptText: string) {
+		searchValue = promptText;
+		showSavedPrompts = false;
+		// Auto-navigate if it doesn't have placeholders
+		if (!promptText.includes('[') || !promptText.includes(']')) {
 			handleSearch();
 		}
 	}
@@ -139,7 +158,7 @@
 									<path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 								</svg>
 							</button>
-							<button class="input-button">
+							<button class="input-button" on:click={handleOpenSavedPrompts}>
 								<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
 									<path d="M7 1L8.5 5.5H13L9.5 8.5L11 13L7 10L3 13L4.5 8.5L1 5.5H5.5L7 1Z"/>
 								</svg>
@@ -585,3 +604,7 @@
 		}
 	}
 </style>
+
+{#if showSavedPrompts}
+	<SavedPromptsLibrary onUsePrompt={handleUsePrompt} onClose={handleCloseSavedPrompts} />
+{/if}
