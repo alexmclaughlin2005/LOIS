@@ -1293,23 +1293,10 @@
 		min-width: 600px;
 		max-width: 900px;
 		height: 100%;
-		position: absolute;
-		right: 0;
-		top: 0;
-		bottom: 0;
 		background: white;
+		border-left: 1px solid var(--color-border);
 		box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
-		animation: slideIn 0.3s ease;
-		z-index: 10;
-	}
-
-	@keyframes slideIn {
-		from {
-			transform: translateX(100%);
-		}
-		to {
-			transform: translateX(0);
-		}
+		overflow: hidden;
 	}
 
 	.chat-header {
