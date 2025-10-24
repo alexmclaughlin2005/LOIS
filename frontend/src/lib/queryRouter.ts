@@ -190,19 +190,7 @@ async function handleSQLQuery(query: string, context?: QueryContext): Promise<Qu
       type: 'sql',
       action: explanation,
       data: resultData,
-      prompt: `You are LOIS, a legal operations intelligence assistant.
-
-User query: "${query}"
-
-Data source: SQL database query
-Query executed:
-\`\`\`sql
-${sql}
-\`\`\`
-
-Results: ${resultData?.length || 0} rows
-
-Present the results clearly and conversationally.`,
+      prompt: `Found ${resultData?.length || 0} result${resultData?.length === 1 ? '' : 's'} for: "${query}"`,
       sqlQuery: sql
     };
 
@@ -261,21 +249,7 @@ async function handleDocumentSearch(query: string, context?: QueryContext): Prom
         type: 'document_search',
         action: `Finding documents for ${caseNumbers.length} case(s) from previous result`,
         data: data,
-        prompt: `You are a legal assistant helping with document search. The user asked: "${query}"
-
-Based on the previous query results, I found documents for these ${caseNumbers.length} cases: ${caseNumbers.join(', ')}
-
-Found ${data?.length || 0} documents.
-
-Present the results:
-- Total documents found for these cases
-- Breakdown by document type
-- Breakdown by case
-- Most recent documents
-
-Format as a table showing: Case Number, Document Title, Type, Date Filed.
-
-Be professional and helpful.`,
+        prompt: `Found ${data?.length || 0} document${data?.length === 1 ? '' : 's'} across ${caseNumbers.length} case${caseNumbers.length === 1 ? '' : 's'}.`,
         sqlQuery: `SELECT d.title, d.document_type, p.case_number FROM documents d JOIN projects p ON d.project_id = p.id WHERE p.case_number IN (${caseNumbers.map(cn => `'${cn}'`).join(', ')})`
       };
 
@@ -309,19 +283,7 @@ Be professional and helpful.`,
         type: 'document_search',
         action: `Searching documents for "${searchTerms}"`,
         data: data,
-        prompt: `You are a legal assistant helping with document search. The user asked: "${query}"
-
-I searched through all documents for terms related to "${searchTerms}" and found ${data?.length || 0} matching documents.
-
-Present the results:
-- Total documents found
-- Document types (Pleadings, Motions, etc.)
-- Related cases
-- Most relevant documents
-
-Format as a table showing: Document Title, Type, Case, Date Filed.
-
-If no results, suggest alternative search terms.`,
+        prompt: `Found ${data?.length || 0} document${data?.length === 1 ? '' : 's'} matching "${searchTerms}".`,
         sqlQuery: `SELECT title, document_type FROM documents WHERE to_tsvector('english', content) @@ websearch_to_tsquery('english', '${searchTerms}')`
       };
     }
