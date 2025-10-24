@@ -245,7 +245,7 @@ async function handleDocumentSearch(query: string, context?: QueryContext): Prom
           title,
           document_type,
           date_filed,
-          file_size,
+          file_size_kb,
           projects!inner (case_number, title)
         `)
         .in('projects.case_number', caseNumbers)
