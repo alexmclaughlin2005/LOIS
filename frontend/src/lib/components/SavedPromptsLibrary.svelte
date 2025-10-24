@@ -289,32 +289,28 @@
 
 <style>
 	.library-overlay {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
-		backdrop-filter: blur(4px);
+		/* Side panel - no overlay background */
+		width: 480px;
+		min-width: 480px;
+		max-width: 480px;
+		height: 100%;
 		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-		padding: 20px;
+		flex-direction: column;
 	}
 
 	.library-container {
 		background: white;
-		border-radius: 12px;
-		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-		max-width: 1200px;
+		border-left: 1px solid #E0E0E0;
 		width: 100%;
-		max-height: 90vh;
+		height: 100%;
 		display: flex;
 		flex-direction: column;
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-		transition: max-width 0.2s ease;
+		overflow: hidden;
 	}
 
 	.library-container.creation-mode {
-		max-width: 650px;
+		/* Keep same styling in creation mode */
 	}
 
 	.creation-wrapper {
