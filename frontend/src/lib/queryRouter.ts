@@ -190,22 +190,19 @@ async function handleSQLQuery(query: string, context?: QueryContext): Promise<Qu
       type: 'sql',
       action: explanation,
       data: resultData,
-      prompt: `You are a legal assistant. The user asked: "${query}"
+      prompt: `You are LOIS, a legal operations intelligence assistant.
 
-The system generated and executed this SQL query:
+User query: "${query}"
+
+Data source: SQL database query
+Query executed:
 \`\`\`sql
 ${sql}
 \`\`\`
 
-Results: ${resultData?.length || 0} rows returned.
+Results: ${resultData?.length || 0} rows
 
-Present the results in a clear, conversational way highlighting:
-- Key statistics and insights
-- Notable patterns or trends
-- Any important findings
-- Actionable information
-
-Be professional, concise, and helpful.`,
+Present the results clearly and conversationally.`,
       sqlQuery: sql
     };
 
@@ -418,77 +415,42 @@ async function handleGeneralQuestion(query: string, context?: QueryContext): Pro
         type: 'general',
         action: `Analyzing ${documentData.length} documents for ${caseNumbers.length} case(s)`,
         data: documentData,
-        prompt: `You are LOIS, a helpful legal operations intelligence assistant.
+        prompt: `You are LOIS, a legal operations intelligence assistant.
 
-The user asked: "${query}"
+User query: "${query}"
 
-Context: The user previously queried cases: ${caseNumbers.join(', ')}
+Data source: Document database for case(s): ${caseNumbers.join(', ')}
 
-I've retrieved ${documentData.length} documents related to ${caseNumbers.length === 1 ? 'this case' : 'these cases'}:
-
+Documents retrieved (${documentData.length}):
 ${documentData.map((doc: any, idx: number) => `
 ${idx + 1}. **${doc.title}** (${doc.document_type})
    - Case: ${doc.projects?.case_number}
    - Filed: ${doc.date_filed || 'Unknown'}
-   - Content preview: ${doc.content?.substring(0, 500) || 'No content available'}...
+   - Content: ${doc.content?.substring(0, 500) || 'No content'}...
 `).join('\n')}
 
-Please analyze these documents and respond to the user's request. If they asked for a summary:
-1. Identify the key themes across documents
-2. Note any important dates, parties, or legal arguments
-3. Highlight critical information from pleadings, motions, or briefs
-4. Organize by document type if helpful
-
-Be thorough but concise. Focus on legally relevant information.`,
+Analyze and respond to the user's request based on these documents.`,
         sqlQuery: undefined
       };
     }
 
-    // No document context - provide general stats
-    const { data: projects } = await supabase
-      .from('projects')
-      .select('case_type, status')
-      .limit(200);
-
-    const stats = {
-      totalCases: projects?.length || 0,
-      byType: {} as Record<string, number>,
-      byStatus: {} as Record<string, number>
-    };
-
-    projects?.forEach(p => {
-      stats.byType[p.case_type] = (stats.byType[p.case_type] || 0) + 1;
-      stats.byStatus[p.status] = (stats.byStatus[p.status] || 0) + 1;
-    });
-
+    // No document context - provide general guidance
     return {
       type: 'general',
       action: 'Analyzing your question',
-      data: stats,
-      prompt: `You are LOIS, a helpful legal operations intelligence assistant.
+      data: null,
+      prompt: `You are LOIS, a legal operations intelligence assistant.
 
-The user asked: "${query}"
+User query: "${query}"
 
-Context about our database:
-- Total cases: ${stats.totalCases}
-- Case types: ${Object.keys(stats.byType).join(', ')}
-- Statuses: ${Object.keys(stats.byStatus).join(', ')}
+Data source: General database query
 
-Available data:
-- Projects (legal cases) with details, custom fields, status
-- Contacts (attorneys, clients, witnesses, experts)
-- Documents (pleadings, motions, discovery, correspondence)
-- Calendar entries (court dates, deadlines, meetings)
-- Time entries and billing data
-- Tasks and notes
+I don't have specific data loaded for this query. Help the user by:
+1. Acknowledging their question
+2. Suggesting specific queries they could ask to get the data they need
+3. Being helpful and professional
 
-Respond conversationally to their question. If you need more specific data to answer:
-1. Acknowledge the question
-2. Explain what information we have
-3. Ask clarifying questions to help them get the data they need
-4. Suggest specific queries they could try
-
-Be friendly, professional, and helpful. You're here to make legal operations easier.`,
+Available data types: cases, contacts, documents, calendar entries, time entries, tasks, notes.`,
       sqlQuery: undefined
     };
 
