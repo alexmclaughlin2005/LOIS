@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import SavedPromptsLibrary from '$lib/components/SavedPromptsLibrary.svelte';
+	import RoutinesLibrary from '$lib/components/RoutinesLibrary.svelte';
+	import type { Routine } from '$lib/types/routine';
 
 	let searchValue = '';
 	let showSavedPrompts = false;
+	let showRoutinesLibrary = false;
 
 	function handleSearch() {
 		if (searchValue.trim()) {
@@ -34,6 +37,14 @@
 			handleSearch();
 		}
 	}
+
+	function handleRunRoutine(routine: Routine) {
+		console.log('🔄 Running routine:', routine.name);
+		// Close the routines library
+		showRoutinesLibrary = false;
+		// Navigate to chat with the routine prompt
+		goto(`/chat?q=${encodeURIComponent(routine.prompt)}`);
+	}
 </script>
 
 <svelte:head>
@@ -57,7 +68,7 @@
 		</div>
 
 		<nav class="sidebar-nav">
-			<button class="nav-item">
+			<button class="nav-item" on:click={() => goto('/chat')}>
 				<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
 					<path d="M8 2L8 14M2 8L14 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 				</svg>
@@ -70,7 +81,7 @@
 				</svg>
 				Create Routine
 			</button>
-			<button class="nav-item">
+			<button class="nav-item" on:click={() => showRoutinesLibrary = !showRoutinesLibrary}>
 				<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
 					<rect x="3" y="4" width="10" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
 					<path d="M6 2V4M10 2V4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -607,4 +618,11 @@
 
 {#if showSavedPrompts}
 	<SavedPromptsLibrary onUsePrompt={handleUsePrompt} onClose={handleCloseSavedPrompts} />
+{/if}
+
+{#if showRoutinesLibrary}
+	<RoutinesLibrary
+		onClose={() => showRoutinesLibrary = false}
+		onRunRoutine={handleRunRoutine}
+	/>
 {/if}
