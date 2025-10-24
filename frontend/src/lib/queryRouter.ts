@@ -1,11 +1,11 @@
 /**
  * Query Router
  *
- * Routes queries to appropriate handlers based on classification
+ * Routes queries to appropriate handlers based on LLM classification
  * and provides LLM with context-aware prompts
  */
 
-import { classifyQuery, type QueryType } from './queryClassifier';
+import type { QueryType } from './queryClassifier';
 import { supabase } from './supabase';
 
 export interface QueryResult {
@@ -330,27 +330,50 @@ Be friendly, professional, and helpful. You're here to make legal operations eas
 }
 
 /**
- * Main router function
+ * Main router function - now uses LLM for classification
  */
 export async function routeQuery(query: string): Promise<QueryResult> {
-  // Classify the query
-  const classification = classifyQuery(query);
+  try {
+    // Use LLM to classify the query
+    console.log('🔍 Routing query:', query);
 
-  console.log('🔍 Query Classification:', classification);
+    const classifyResponse = await fetch('/api/classify-query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
 
-  // Route to appropriate handler
-  switch (classification.type) {
-    case 'sql':
-      return handleSQLQuery(query);
+    if (!classifyResponse.ok) {
+      throw new Error('Failed to classify query');
+    }
 
-    case 'document_search':
-      return handleDocumentSearch(query);
+    const { success, type, confidence, reasoning, error } = await classifyResponse.json();
 
-    case 'general':
-      return handleGeneralQuestion(query);
+    if (!success || error) {
+      throw new Error(error || 'Classification failed');
+    }
 
-    default:
-      return handleGeneralQuestion(query);
+    console.log(`🔍 Query Classification: ${type} (confidence: ${confidence})`);
+    console.log(`💭 Reasoning: ${reasoning}`);
+
+    // Route to appropriate handler
+    switch (type) {
+      case 'sql':
+        return handleSQLQuery(query);
+
+      case 'document_search':
+        return handleDocumentSearch(query);
+
+      case 'general':
+        return handleGeneralQuestion(query);
+
+      default:
+        return handleGeneralQuestion(query);
+    }
+  } catch (error: any) {
+    console.error('❌ Routing error:', error);
+    // Fallback to general question handler if classification fails
+    return handleGeneralQuestion(query);
   }
 }
 
