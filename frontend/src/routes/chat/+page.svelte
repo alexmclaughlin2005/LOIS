@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { marked } from 'marked';
 	import ResultsView from '$lib/components/ResultsView.svelte';
 	import DataPreviewCard from '$lib/components/DataPreviewCard.svelte';
 	import DataLoadingSkeleton from '$lib/components/DataLoadingSkeleton.svelte';
 	import RoutineCreationCard from '$lib/components/RoutineCreationCard.svelte';
 	import RoutinesLibrary from '$lib/components/RoutinesLibrary.svelte';
+	import { testConnection } from '$lib/supabase';
+	import { getOpenPersonalInjuryCases, getCasesWithHighMedicalExpenses } from '$lib/queries';
 
 	// Configure marked options
 	marked.setOptions({
@@ -48,6 +51,21 @@
 	// Demo mode: track conversation state for hardcoded demo flow
 	let demoMode = true; // Set to true to enable demo mode
 	let demoState: 'initial' | 'showing_42_cases' | 'awaiting_followup' = 'initial';
+
+	// Test database connection on mount
+	onMount(async () => {
+		console.log('🔌 Testing Supabase connection...');
+		const connected = await testConnection();
+
+		if (connected) {
+			// Test queries
+			const piCases = await getOpenPersonalInjuryCases();
+			const highExpenseCases = await getCasesWithHighMedicalExpenses();
+
+			console.log(`📊 Found ${piCases.length} open PI cases in discovery`);
+			console.log(`💰 Found ${highExpenseCases.length} cases with medical expenses >$100k`);
+		}
+	});
 
 	// Demo data for first interaction (42 cases)
 	const demo42Cases = [

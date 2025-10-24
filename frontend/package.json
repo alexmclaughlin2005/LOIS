@@ -28,6 +28,7 @@
   "type": "module",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
+    "@supabase/supabase-js": "^2.76.1",
     "marked": "^16.4.1"
   }
 }
