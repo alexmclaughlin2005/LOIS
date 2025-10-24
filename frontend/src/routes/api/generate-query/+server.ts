@@ -206,29 +206,82 @@ User's natural language query: "${query}"
 
 Generate a PostgreSQL query to answer this question. Respond with ONLY a JSON object in this exact format:
 {
-  "sql": "SELECT ... (the complete SQL query)",
+  "sql": "SELECT ... (the complete SQL query - plain text, no markdown)",
   "explanation": "A brief user-friendly explanation of what this query finds",
   "estimated_rows": "approximate number of results (e.g., 'few', 'dozens', 'hundreds')",
-  "display_columns": ["column1", "column2"] // columns to show in table
+  "display_columns": ["column1", "column2"]
 }
 
-Requirements:
-- ONLY generate SELECT queries (read-only)
-- Use proper JOIN syntax when multiple tables are needed
-- Include appropriate WHERE clauses for filtering
-- Add ORDER BY for logical sorting
-- Use LIMIT to prevent excessive results (default LIMIT 100, max 500)
-- For date ranges, use CURRENT_DATE and INTERVAL syntax
-- For JSONB fields in custom_fields, use ->> operator: custom_fields->>'field_name'
-- Select only the columns needed for display
-- Use clear column aliases for better readability
-- For aggregations, include GROUP BY
+## CRITICAL RULES:
 
-Examples:
-- "cases with high medical expenses": SELECT case_number, title, (custom_fields->>'medical_expenses')::numeric as medical_expenses FROM projects WHERE case_type = 'Personal Injury' AND (custom_fields->>'medical_expenses')::numeric > 100000 ORDER BY (custom_fields->>'medical_expenses')::numeric DESC LIMIT 100
-- "upcoming deadlines": SELECT title, start_time, entry_type FROM calendar_entries WHERE entry_type = 'Deadline' AND start_time BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' ORDER BY start_time ASC LIMIT 100
+1. **SQL Format**:
+   - The "sql" field MUST contain ONLY the SQL query as plain text
+   - DO NOT wrap SQL in markdown code blocks (\`\`\`sql)
+   - DO NOT include any explanatory text before or after the query
+   - The SQL must start with SELECT
 
-Respond ONLY with the JSON object, no other text.`
+2. **Query Safety**:
+   - ONLY generate SELECT queries (read-only)
+   - NO INSERT, UPDATE, DELETE, DROP, TRUNCATE, ALTER, or CREATE statements
+   - Use parameterized values safely (avoid SQL injection patterns)
+
+3. **JOIN Best Practices**:
+   - Use explicit JOIN syntax (INNER JOIN, LEFT JOIN)
+   - Always specify join conditions with ON clauses
+   - Use table aliases for clarity (e.g., p for projects, c for contacts)
+   - Example: FROM projects p INNER JOIN contacts c ON p.id = c.project_id
+
+4. **Filtering & Conditions**:
+   - Use WHERE clauses for filtering
+   - For JSONB custom_fields: (custom_fields->>'field_name')::numeric > value
+   - For text search: ILIKE '%term%' or to_tsvector/to_tsquery for full-text
+   - For date ranges: WHERE date_column BETWEEN start_date AND end_date
+   - Use CURRENT_DATE, CURRENT_TIMESTAMP for current time queries
+   - Handle NULL values: WHERE column IS NULL or IS NOT NULL
+
+5. **Performance & Limits**:
+   - ALWAYS include LIMIT clause (default 100, max 500)
+   - Add ORDER BY for consistent, meaningful results
+   - Select only necessary columns (avoid SELECT *)
+   - For counts/aggregations, use COUNT(), SUM(), AVG() with GROUP BY
+
+6. **Column Selection & Aliases**:
+   - Use descriptive aliases: SELECT p.case_number as "Case Number"
+   - Format dates: TO_CHAR(date_column, 'YYYY-MM-DD') as formatted_date
+   - Cast JSONB: (custom_fields->>'amount')::numeric as amount
+   - Aggregate examples: COUNT(*) as total_cases, SUM(hours) as total_hours
+
+7. **Common Query Patterns**:
+   - Case search: SELECT case_number, title, status FROM projects WHERE status = 'Open' LIMIT 100
+   - Time entries: SELECT project_id, SUM(hours) as total_hours FROM time_entries GROUP BY project_id ORDER BY total_hours DESC LIMIT 100
+   - Upcoming events: SELECT title, start_time FROM calendar_entries WHERE start_time > CURRENT_DATE ORDER BY start_time ASC LIMIT 50
+   - Document search: SELECT title, document_type FROM documents WHERE title ILIKE '%search%' LIMIT 100
+   - Custom field filter: SELECT case_number, (custom_fields->>'field')::numeric as value FROM projects WHERE (custom_fields->>'field')::numeric > 10000
+
+## Examples:
+
+Query: "Show me open personal injury cases"
+{
+  "sql": "SELECT case_number, title, status, filing_date FROM projects WHERE status = 'Open' AND case_type = 'Personal Injury' ORDER BY filing_date DESC LIMIT 100",
+  "explanation": "Finding all open Personal Injury cases",
+  "estimated_rows": "dozens"
+}
+
+Query: "Which cases have billable time over 80 hours?"
+{
+  "sql": "SELECT p.case_number, p.title, SUM(te.hours) as total_hours FROM projects p INNER JOIN time_entries te ON p.id = te.project_id WHERE te.is_billable = true GROUP BY p.id, p.case_number, p.title HAVING SUM(te.hours) > 80 ORDER BY total_hours DESC LIMIT 100",
+  "explanation": "Finding cases with more than 80 billable hours",
+  "estimated_rows": "few"
+}
+
+Query: "Upcoming court dates this month"
+{
+  "sql": "SELECT p.case_number, ce.title, ce.start_time, ce.location FROM calendar_entries ce INNER JOIN projects p ON ce.project_id = p.id WHERE ce.entry_type = 'Court Date' AND ce.start_time BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '1 month' ORDER BY ce.start_time ASC LIMIT 100",
+  "explanation": "Finding court dates scheduled in the next month",
+  "estimated_rows": "dozens"
+}
+
+IMPORTANT: Respond ONLY with the JSON object. No markdown, no code blocks, no additional text.`
 				}
 			]
 		});
