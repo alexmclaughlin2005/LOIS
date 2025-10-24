@@ -295,17 +295,16 @@
 
 <style>
 	.routines-library {
-		position: fixed;
-		right: 0;
-		top: 0;
-		bottom: 0;
 		width: 480px;
+		min-width: 480px;
+		max-width: 480px;
+		height: 100%;
 		background: #F4F4F4;
 		border-left: 1px solid #E0E0E0;
 		display: flex;
 		flex-direction: column;
 		font-family: 'Helvetica Now Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-		z-index: 100;
+		overflow: hidden;
 	}
 
 	.library-header {

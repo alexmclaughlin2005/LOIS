@@ -2,11 +2,14 @@
 	import { goto } from '$app/navigation';
 	import SavedPromptsLibrary from '$lib/components/SavedPromptsLibrary.svelte';
 	import RoutinesLibrary from '$lib/components/RoutinesLibrary.svelte';
-	import type { Routine } from '$lib/types/routine';
+	import { DEFAULT_ROUTINES, type Routine } from '$lib/types/routine';
 
 	let searchValue = '';
 	let showSavedPrompts = false;
 	let showRoutinesLibrary = false;
+
+	// Get recent routines from DEFAULT_ROUTINES
+	const recentRoutines = DEFAULT_ROUTINES.slice(0, 3);
 
 	function handleSearch() {
 		if (searchValue.trim()) {
@@ -45,6 +48,18 @@
 		// Navigate to chat with the routine prompt
 		goto(`/chat?q=${encodeURIComponent(routine.prompt)}`);
 	}
+
+	function handleCreateRoutine() {
+		console.log('📝 Creating new routine...');
+		// TODO: Navigate to routine creation page or show modal
+		goto('/chat?action=create-routine');
+	}
+
+	function handleClickRecentRoutine(routine: Routine) {
+		console.log('🔄 Running recent routine:', routine.name);
+		// Navigate to chat with the routine prompt
+		goto(`/chat?q=${encodeURIComponent(routine.prompt)}`);
+	}
 </script>
 
 <svelte:head>
@@ -74,7 +89,7 @@
 				</svg>
 				New Chat
 			</button>
-			<button class="nav-item">
+			<button class="nav-item" on:click={handleCreateRoutine}>
 				<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
 					<circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2"/>
 					<path d="M8 5V9L10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -98,27 +113,15 @@
 				</svg>
 			</button>
 			<div class="routine-list">
-				<div class="routine-item">
-					<div class="routine-content">
-						<div class="routine-title">Meds > $100k</div>
-						<div class="routine-desc">Finds all cases where medical expenses exceed $100,000.</div>
-					</div>
-					<span class="routine-badge">2</span>
-				</div>
-				<div class="routine-item">
-					<div class="routine-content">
-						<div class="routine-title">Depos Next Month</div>
-						<div class="routine-desc">Lists all depositions scheduled for the upcoming month.</div>
-					</div>
-					<span class="routine-badge">2</span>
-				</div>
-				<div class="routine-item">
-					<div class="routine-content">
-						<div class="routine-title">Inactive Clients</div>
-						<div class="routine-desc">Alerts for clients with no communications in 60 days.</div>
-					</div>
-					<span class="routine-badge">3</span>
-				</div>
+				{#each recentRoutines as routine, index}
+					<button class="routine-item" on:click={() => handleClickRecentRoutine(routine)}>
+						<div class="routine-content">
+							<div class="routine-title">{routine.name}</div>
+							<div class="routine-desc">{routine.description}</div>
+						</div>
+						<span class="routine-badge">{index + 2}</span>
+					</button>
+				{/each}
 			</div>
 		</div>
 
@@ -349,6 +352,7 @@
 	}
 
 	.routine-item {
+		width: 100%;
 		display: flex;
 		align-items: flex-start;
 		gap: 12px;
@@ -361,6 +365,8 @@
 		border: 1px solid var(--color-border);
 		border-left: 3px solid #FF9F66;
 		transition: all 0.15s;
+		text-align: left;
+		font-family: inherit;
 	}
 
 	.routine-item:hover {
