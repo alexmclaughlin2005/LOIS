@@ -536,6 +536,15 @@ export function formatResultForDisplay(result: QueryResult): {
 
   // For now, return structured data that the chat component can render
   // In Phase 4, we'll use the LLM to generate natural language responses
+
+  // Check if we have valid data to display in a table
+  if (result.data === null || result.data === undefined) {
+    return {
+      message: result.prompt,
+      hasTable: false
+    };
+  }
+
   return {
     message: result.prompt,
     hasTable: true,
