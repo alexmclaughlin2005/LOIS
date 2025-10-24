@@ -258,6 +258,14 @@ Generate a PostgreSQL query to answer this question. Respond with ONLY a JSON ob
    - Document search: SELECT title, document_type FROM documents WHERE title ILIKE '%search%' LIMIT 100
    - Custom field filter: SELECT case_number, (custom_fields->>'field')::numeric as value FROM projects WHERE (custom_fields->>'field')::numeric > 10000
 
+8. **Searching for Names/Parties**:
+   When searching for a person or party name (e.g., "cases involving Smith" or "matters with Johnson"):
+   - Search BOTH the case title AND contacts table
+   - Case titles often contain party names in formats like "Smith v. Jones" or "Matter of Smith"
+   - Use ILIKE with % wildcards for flexible matching
+   - Example: WHERE p.title ILIKE '%smith%' OR c.last_name ILIKE '%smith%'
+   - For follow-up questions about previous results, maintain the same filtering criteria
+
 ## Examples:
 
 Query: "Show me open personal injury cases"
@@ -279,6 +287,13 @@ Query: "Upcoming court dates this month"
   "sql": "SELECT p.case_number, ce.title, ce.start_time, ce.location FROM calendar_entries ce INNER JOIN projects p ON ce.project_id = p.id WHERE ce.entry_type = 'Court Date' AND ce.start_time BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '1 month' ORDER BY ce.start_time ASC LIMIT 100",
   "explanation": "Finding court dates scheduled in the next month",
   "estimated_rows": "dozens"
+}
+
+Query: "Cases involving Smith" or "Which cases involved Smith?"
+{
+  "sql": "SELECT DISTINCT p.case_number, p.title, p.status FROM projects p LEFT JOIN project_contacts pc ON p.id = pc.project_id LEFT JOIN contacts c ON pc.contact_id = c.id WHERE p.title ILIKE '%smith%' OR c.first_name ILIKE '%smith%' OR c.last_name ILIKE '%smith%' ORDER BY p.case_number LIMIT 100",
+  "explanation": "Finding all cases where 'Smith' appears in the case title or as a contact",
+  "estimated_rows": "few"
 }
 
 IMPORTANT: Respond ONLY with the JSON object. No markdown, no code blocks, no additional text.`
