@@ -10,17 +10,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import crypto from 'crypto';
-import {
-	SNOWFLAKE_ACCOUNT,
-	SNOWFLAKE_USER,
-	SNOWFLAKE_PASSWORD,
-	SNOWFLAKE_DATABASE,
-	SNOWFLAKE_SCHEMA,
-	SNOWFLAKE_WAREHOUSE,
-	SNOWFLAKE_ROLE,
-	SNOWFLAKE_PRIVATE_KEY_PASSWORD,
-	SNOWFLAKE_PRIVATE_KEY
-} from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 export interface SnowflakeConfig {
 	account: string;
@@ -47,9 +37,9 @@ function loadPrivateKey(): string | undefined {
 		let encryptedKey: string;
 
 		// First, try to load from environment variable (production)
-		if (SNOWFLAKE_PRIVATE_KEY) {
+		if (env.SNOWFLAKE_PRIVATE_KEY) {
 			console.log('Loading private key from environment variable');
-			encryptedKey = SNOWFLAKE_PRIVATE_KEY;
+			encryptedKey = env.SNOWFLAKE_PRIVATE_KEY;
 		} else {
 			// Fallback to loading from file (local development)
 			const keyPath = join(process.cwd(), 'app_testing_rsa_key.p8');
@@ -62,11 +52,11 @@ function loadPrivateKey(): string | undefined {
 		}
 
 		// Decrypt the private key using the password
-		if (SNOWFLAKE_PRIVATE_KEY_PASSWORD) {
+		if (env.SNOWFLAKE_PRIVATE_KEY_PASSWORD) {
 			const privateKeyObject = crypto.createPrivateKey({
 				key: encryptedKey,
 				format: 'pem',
-				passphrase: SNOWFLAKE_PRIVATE_KEY_PASSWORD
+				passphrase: env.SNOWFLAKE_PRIVATE_KEY_PASSWORD
 			});
 
 			// Export as unencrypted PKCS8 PEM format
@@ -94,12 +84,12 @@ export function getSnowflakeConfig(): SnowflakeConfig {
 	const privateKey = loadPrivateKey();
 
 	const config: SnowflakeConfig = {
-		account: SNOWFLAKE_ACCOUNT,
-		username: SNOWFLAKE_USER,
-		database: SNOWFLAKE_DATABASE,
-		schema: SNOWFLAKE_SCHEMA,
-		warehouse: SNOWFLAKE_WAREHOUSE,
-		role: SNOWFLAKE_ROLE
+		account: env.SNOWFLAKE_ACCOUNT || '',
+		username: env.SNOWFLAKE_USER || '',
+		database: env.SNOWFLAKE_DATABASE,
+		schema: env.SNOWFLAKE_SCHEMA,
+		warehouse: env.SNOWFLAKE_WAREHOUSE,
+		role: env.SNOWFLAKE_ROLE
 	};
 
 	// Use private key authentication if available, otherwise use password
@@ -107,8 +97,8 @@ export function getSnowflakeConfig(): SnowflakeConfig {
 		config.privateKey = privateKey;
 		config.authenticator = 'SNOWFLAKE_JWT';
 		console.log('Using private key authentication');
-	} else if (SNOWFLAKE_PASSWORD) {
-		config.password = SNOWFLAKE_PASSWORD;
+	} else if (env.SNOWFLAKE_PASSWORD) {
+		config.password = env.SNOWFLAKE_PASSWORD;
 		console.log('Using password authentication');
 	}
 
@@ -216,7 +206,7 @@ export async function testSnowflakeConnection(): Promise<boolean> {
  */
 export async function getSnowflakeTables(): Promise<Array<{ name: string; type: string }>> {
 	const query = `
-		SHOW TABLES IN SCHEMA ${SNOWFLAKE_DATABASE}.${SNOWFLAKE_SCHEMA}
+		SHOW TABLES IN SCHEMA ${env.SNOWFLAKE_DATABASE}.${env.SNOWFLAKE_SCHEMA}
 	`;
 
 	try {
@@ -240,7 +230,7 @@ export async function getTableSchema(tableName: string): Promise<Array<{
 	nullable: boolean;
 }>> {
 	const query = `
-		DESCRIBE TABLE ${SNOWFLAKE_DATABASE}.${SNOWFLAKE_SCHEMA}.${tableName}
+		DESCRIBE TABLE ${env.SNOWFLAKE_DATABASE}.${env.SNOWFLAKE_SCHEMA}.${tableName}
 	`;
 
 	try {
