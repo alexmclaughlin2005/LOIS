@@ -34,6 +34,11 @@
 		showActionButton?: boolean;
 		actionButtonText?: string;
 		actionButtonCallback?: () => void;
+		actionButtons?: Array<{
+			text: string;
+			callback: () => void;
+			primary?: boolean;
+		}>;
 		showRoutineCreation?: boolean;
 		routineCreationData?: {
 			onSave: (routine: any) => void;
@@ -370,19 +375,51 @@
 	}
 
 	/**
-	 * Show routine creation suggestion
+	 * Show routine creation suggestion with action buttons
 	 */
 	function suggestRoutineCreation(pattern: QueryPattern) {
 		routineSuggestionShown = true;
 
-		// Generate a friendly description from the most recent query
-		const latestQuery = pattern.queries[pattern.queries.length - 1];
+		// Generate suggestion based on query pattern
+		const queryType = pattern.topic.replace(/_/g, ' ').trim() || 'this data';
 
 		messages = [
 			...messages,
 			{
 				role: 'assistant',
-				content: `I notice you've asked about this ${pattern.queries.length} times. Would you like to create a routine to automatically check this on a schedule?`,
+				content: `Would you like me to create a routine to automatically report on ${queryType} every week?`,
+				actionButtons: [
+					{
+						text: 'Yes, create routine',
+						primary: true,
+						callback: () => {
+							// Remove the suggestion message and show routine creation form
+							messages = messages.filter(m => !m.actionButtons);
+							showRoutineCreationForm(pattern);
+						}
+					},
+					{
+						text: 'No, thanks',
+						primary: false,
+						callback: () => {
+							// Just remove the suggestion message
+							messages = messages.filter(m => !m.actionButtons);
+						}
+					}
+				]
+			}
+		];
+	}
+
+	/**
+	 * Show the actual routine creation form
+	 */
+	function showRoutineCreationForm(pattern: QueryPattern) {
+		messages = [
+			...messages,
+			{
+				role: 'assistant',
+				content: '',
 				showRoutineCreation: true,
 				routineCreationData: {
 					onSave: (routine: any) => {
@@ -801,6 +838,19 @@
 										<button class="action-button" on:click={message.actionButtonCallback}>
 											{message.actionButtonText}
 										</button>
+									{/if}
+									{#if message.actionButtons && message.actionButtons.length > 0}
+										<div class="action-buttons">
+											{#each message.actionButtons as button}
+												<button
+													class="action-button"
+													class:primary={button.primary}
+													on:click={button.callback}
+												>
+													{button.text}
+												</button>
+											{/each}
+										</div>
 									{/if}
 									{#if message.showRoutineCreation && message.routineCreationData}
 										<RoutineCreationCard
@@ -1337,24 +1387,45 @@
 		margin-top: 16px;
 	}
 
+	/* Action Buttons Container */
+	.action-buttons {
+		display: flex;
+		gap: 12px;
+		margin-top: 15px;
+		align-items: center;
+	}
+
 	/* Action Button */
 	.action-button {
-		margin-top: 15px;
 		padding: 10px 20px;
-		background: var(--color-brand-black);
-		color: white;
-		border: none;
+		background: transparent;
+		color: var(--color-text);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		font-size: 14px;
-		font-weight: 600;
+		font-weight: 500;
 		cursor: pointer;
 		transition: all 0.2s;
 		display: inline-block;
 	}
 
+	.action-button.primary {
+		background: var(--color-brand-black);
+		color: white;
+		border-color: var(--color-brand-black);
+		font-weight: 600;
+	}
+
 	.action-button:hover {
-		background: #333;
+		background: #f5f5f5;
+		border-color: #ccc;
 		transform: translateY(-1px);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	}
+
+	.action-button.primary:hover {
+		background: #333;
+		border-color: #333;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 	}
 
