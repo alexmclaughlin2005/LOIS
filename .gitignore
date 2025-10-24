@@ -17,6 +17,15 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+secrets_ml_app.env
+
+# Private keys and certificates
+*.p8
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
 
 # Logs
 logs/

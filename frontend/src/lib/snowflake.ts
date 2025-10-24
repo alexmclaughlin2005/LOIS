@@ -8,6 +8,7 @@
 import snowflake from 'snowflake-sdk';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { existsSync } from 'fs';
 import crypto from 'crypto';
 import {
 	SNOWFLAKE_ACCOUNT,
@@ -17,7 +18,8 @@ import {
 	SNOWFLAKE_SCHEMA,
 	SNOWFLAKE_WAREHOUSE,
 	SNOWFLAKE_ROLE,
-	SNOWFLAKE_PRIVATE_KEY_PASSWORD
+	SNOWFLAKE_PRIVATE_KEY_PASSWORD,
+	SNOWFLAKE_PRIVATE_KEY
 } from '$env/static/private';
 
 export interface SnowflakeConfig {
@@ -35,11 +37,29 @@ export interface SnowflakeConfig {
 /**
  * Load and decrypt the private key for Snowflake authentication
  * Converts encrypted PKCS8 key to unencrypted format
+ *
+ * Supports two modes:
+ * 1. Environment variable: SNOWFLAKE_PRIVATE_KEY (for production/Vercel)
+ * 2. Local file: app_testing_rsa_key.p8 (for local development)
  */
 function loadPrivateKey(): string | undefined {
 	try {
-		const keyPath = join(process.cwd(), 'app_testing_rsa_key.p8');
-		const encryptedKey = readFileSync(keyPath, 'utf8');
+		let encryptedKey: string;
+
+		// First, try to load from environment variable (production)
+		if (SNOWFLAKE_PRIVATE_KEY) {
+			console.log('Loading private key from environment variable');
+			encryptedKey = SNOWFLAKE_PRIVATE_KEY;
+		} else {
+			// Fallback to loading from file (local development)
+			const keyPath = join(process.cwd(), 'app_testing_rsa_key.p8');
+			if (!existsSync(keyPath)) {
+				console.warn('No private key found in environment or file system');
+				return undefined;
+			}
+			console.log('Loading private key from file:', keyPath);
+			encryptedKey = readFileSync(keyPath, 'utf8');
+		}
 
 		// Decrypt the private key using the password
 		if (SNOWFLAKE_PRIVATE_KEY_PASSWORD) {
@@ -58,6 +78,7 @@ function loadPrivateKey(): string | undefined {
 			return decryptedKey.toString();
 		}
 
+		console.warn('No private key password provided');
 		return undefined;
 	} catch (error) {
 		console.warn('Failed to load private key:', error);
