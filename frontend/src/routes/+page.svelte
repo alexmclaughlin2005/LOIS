@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import SavedPromptsLibrary from '$lib/components/SavedPromptsLibrary.svelte';
 	import RoutinesLibrary from '$lib/components/RoutinesLibrary.svelte';
+	import ChatHistoryList from '$lib/components/ChatHistoryList.svelte';
 	import { DEFAULT_ROUTINES, type Routine } from '$lib/types/routine';
 
 	let searchValue = '';
@@ -132,16 +133,7 @@
 					<path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 				</svg>
 			</button>
-			<div class="chat-list">
-				<button class="chat-item">Personal Injury Cases in Discove...</button>
-				<button class="chat-item">Upcoming Depositions – October</button>
-				<button class="chat-item">Client Medical Record Summary</button>
-				<button class="chat-item">Negligence Case Review</button>
-				<button class="chat-item">Open Litigation Tracker</button>
-				<button class="chat-item">Hearing Schedule – This Week</button>
-				<button class="chat-item">Pending Settlement Report</button>
-				<button class="chat-item">Inactive Client Follow-ups</button>
-			</div>
+			<ChatHistoryList limit={8} />
 		</div>
 
 		<div class="sidebar-footer">

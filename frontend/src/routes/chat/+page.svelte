@@ -10,6 +10,7 @@
 	import QueryProcessingIndicator from '$lib/components/QueryProcessingIndicator.svelte';
 	import ResultsRenderer from '$lib/components/results/ResultsRenderer.svelte';
 	import SavedPromptsLibrary from '$lib/components/SavedPromptsLibrary.svelte';
+	import ChatHistoryList from '$lib/components/ChatHistoryList.svelte';
 	import { testConnection } from '$lib/supabase';
 	import { getOpenPersonalInjuryCases, getCasesWithHighMedicalExpenses } from '$lib/queries';
 	import { routeQuery, formatResultForDisplay } from '$lib/queryRouter';
@@ -84,6 +85,10 @@
 	let queryPatterns: QueryPattern[] = [];
 	let routineSuggestionShown = false; // Prevent multiple suggestions in same session
 
+	// Chat session management
+	let currentSessionId: string | null = null;
+	let sessionTitle: string = 'New Chat';
+
 	// Test database connection on mount
 	onMount(async () => {
 		console.log('🔌 Testing Supabase connection...');
@@ -96,6 +101,13 @@
 
 			console.log(`📊 Found ${piCases.length} open PI cases in discovery`);
 			console.log(`💰 Found ${highExpenseCases.length} cases with medical expenses >$100k`);
+		}
+
+		// Check if there's a session parameter to load
+		const sessionParam = $page.url.searchParams.get('session');
+		if (sessionParam) {
+			console.log('📂 Loading session from URL:', sessionParam);
+			await loadChatSession(sessionParam);
 		}
 
 		// Check if there's a query parameter from the homepage
@@ -653,6 +665,9 @@
 			isProcessingData = false;
 			currentQueryType = null;
 
+			// Save the session after messages are updated
+			await saveOrUpdateChatSession();
+
 		} catch (error) {
 			console.error('Error sending message:', error);
 			isThinking = false;
@@ -665,6 +680,9 @@
 					content: 'Sorry, I encountered an error. Please try again.'
 				}
 			];
+
+			// Save even on error
+			await saveOrUpdateChatSession();
 		}
 	}
 
@@ -703,6 +721,93 @@
 		setTimeout(() => {
 			sendMessage();
 		}, 50);
+	}
+
+	// Chat session management functions
+	async function saveOrUpdateChatSession() {
+		try {
+			// Don't save empty sessions
+			if (messages.length === 0) return;
+
+			// Generate a title from the first user message
+			if (sessionTitle === 'New Chat' && messages.length > 0) {
+				const firstUserMessage = messages.find(m => m.role === 'user');
+				if (firstUserMessage) {
+					// Take first 50 chars of first message as title
+					sessionTitle = firstUserMessage.content.substring(0, 50);
+					if (firstUserMessage.content.length > 50) {
+						sessionTitle += '...';
+					}
+				}
+			}
+
+			// Prepare messages for storage (strip out non-serializable data)
+			const messagesToSave = messages.map(msg => ({
+				role: msg.role,
+				content: msg.content,
+				displayContent: msg.displayContent,
+				hasStructuredData: msg.hasStructuredData,
+				structuredData: msg.structuredData,
+				sqlQuery: msg.sqlQuery
+			}));
+
+			if (currentSessionId) {
+				// Update existing session
+				const response = await fetch(`/api/chat-sessions/${currentSessionId}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						title: sessionTitle,
+						messages: messagesToSave
+					})
+				});
+
+				const data = await response.json();
+				if (!data.success) {
+					console.error('Failed to update session:', data.error);
+				} else {
+					console.log('💾 Session updated:', currentSessionId);
+				}
+			} else {
+				// Create new session
+				const response = await fetch('/api/chat-sessions', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						title: sessionTitle,
+						messages: messagesToSave
+					})
+				});
+
+				const data = await response.json();
+				if (data.success) {
+					currentSessionId = data.session.id;
+					console.log('💾 New session created:', currentSessionId);
+				} else {
+					console.error('Failed to create session:', data.error);
+				}
+			}
+		} catch (error) {
+			console.error('Error saving chat session:', error);
+		}
+	}
+
+	async function loadChatSession(sessionId: string) {
+		try {
+			const response = await fetch(`/api/chat-sessions/${sessionId}`);
+			const data = await response.json();
+
+			if (data.success) {
+				currentSessionId = sessionId;
+				sessionTitle = data.session.title;
+				messages = data.session.messages;
+				console.log('📂 Loaded session:', sessionId);
+			} else {
+				console.error('Failed to load session:', data.error);
+			}
+		} catch (error) {
+			console.error('Error loading chat session:', error);
+		}
 	}
 
 	// Handle demo responses with simulated streaming
@@ -753,6 +858,9 @@
 
 		currentResultsData = structuredData;
 		isProcessingData = false;
+
+		// Save the session
+		await saveOrUpdateChatSession();
 	}
 </script>
 
@@ -806,12 +914,7 @@
 					<path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 				</svg>
 			</button>
-			<div class="chat-list">
-				<button class="chat-item active">Personal Injury Cases in Discove...</button>
-				<button class="chat-item">Upcoming Depositions – October</button>
-				<button class="chat-item">Client Medical Record Summary</button>
-				<button class="chat-item">Negligence Case Review</button>
-			</div>
+			<ChatHistoryList limit={4} />
 		</div>
 
 		<div class="sidebar-footer">
