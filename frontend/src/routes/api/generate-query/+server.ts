@@ -71,11 +71,16 @@ Your database contains legal case management data with the following tables:
 - project_id (UUID, foreign key to projects)
 - title (VARCHAR)
 - document_type (VARCHAR) - Types: Contract, Pleading, Discovery, Evidence, Correspondence, Brief, Motion, Memo
-- file_path (VARCHAR)
-- file_size (INTEGER) - in bytes
-- mime_type (VARCHAR)
+- file_name (VARCHAR) - Original file name
+- file_path (VARCHAR) - Storage path
+- file_size_kb (INTEGER) - File size in kilobytes (NOT file_size!)
+- mime_type (VARCHAR) - MIME type
 - content (TEXT) - Full-text searchable content
-- uploaded_by (VARCHAR)
+- status (VARCHAR) - Document status (e.g., Draft, Final, Archived)
+- date_filed (DATE) - Date document was filed
+- date_received (DATE) - Date document was received
+- uploaded_by (UUID) - User who uploaded (NOT VARCHAR!)
+- tags (VARCHAR[]) - Array of tags
 - created_at (TIMESTAMP)
 - updated_at (TIMESTAMP)
 
