@@ -29,7 +29,23 @@ export const POST: RequestHandler = async ({ request }) => {
 					role: 'user',
 					content: `You are a query classifier for a legal case management system. Analyze the user's query and classify it into ONE of these types:
 
-**1. SQL Query** - For queries that need structured data from the database:
+**1. SEARCH** - For direct entity lookups (HIGHEST PRIORITY):
+- Just a person's name with NO other context or question words
+- Just a case number
+- Simple "find X" or "show me X" where X is a specific person or case
+- NO analysis, filtering, or comparison words
+- Examples:
+  - "Harold McLaughlin" → SEARCH
+  - "John Smith" → SEARCH
+  - "CV-2025-00097" → SEARCH
+  - "find Sarah Johnson" → SEARCH
+  - "Smith" → SEARCH
+- Counter-examples (NOT search):
+  - "What cases is Harold McLaughlin involved in?" → GENERAL or SQL
+  - "How many cases does Smith have?" → SQL
+  - "Show me cases where Smith is involved" → SQL
+
+**2. SQL Query** - For queries that need structured data from the database:
 - Questions about counts, totals, sums, averages
 - Filtering or searching cases by specific criteria
 - Questions about billable hours, expenses, invoices
@@ -41,7 +57,7 @@ export const POST: RequestHandler = async ({ request }) => {
   - "Show me all cases filed in the last 30 days"
   - "What's the total billable amount for Project X?"
 
-**2. Document Search** - For full-text search through document content:
+**3. Document Search** - For full-text search through document content:
 - Questions explicitly asking to search document text
 - Questions about what documents mention or contain specific terms
 - Questions about finding pleadings, motions, contracts with specific content
@@ -50,28 +66,28 @@ export const POST: RequestHandler = async ({ request }) => {
   - "Find all documents mentioning damages"
   - "What pleadings reference the accident date?"
 
-**3. General Question** - For complex, analytical, or conversational queries:
+**4. General Question** - For complex, analytical, or conversational queries:
 - Questions requiring multi-step reasoning
 - Questions asking for summaries or analysis
 - Questions combining data from multiple sources
 - Questions about case status, updates, or explanations
-- Questions about specific documents or case details that need LLM interpretation
 - Examples:
   - "Tell me about the Thompson case"
   - "Summarize the documents in the Hahn case"
   - "What's the status of my open cases?"
-  - "Explain the discovery process"
 
 User's query: "${query}"
 
+IMPORTANT: If the query is JUST a name (like "Harold McLaughlin") with NO question words, it is a SEARCH, not SQL.
+
 Respond with ONLY a JSON object in this exact format:
 {
-  "type": "sql" | "document_search" | "general",
+  "type": "search" | "sql" | "document_search" | "general",
   "confidence": 0.0-1.0,
   "reasoning": "Brief explanation of why this classification was chosen"
 }
 
-Be decisive. Choose the BEST fit. If in doubt between SQL and General, prefer SQL for simple data queries and General for complex analysis.`
+Be decisive. Choose the BEST fit. Prioritize SEARCH for simple name lookups.`
 				}
 			]
 		});
