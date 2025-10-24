@@ -3,6 +3,9 @@
 	"/api/chat": [
 		"src/routes/api/chat/+server.ts"
 	],
+	"/api/classify-query": [
+		"src/routes/api/classify-query/+server.ts"
+	],
 	"/api/execute-query": [
 		"src/routes/api/execute-query/+server.ts"
 	],

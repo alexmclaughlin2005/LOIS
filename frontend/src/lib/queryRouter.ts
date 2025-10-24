@@ -139,20 +139,31 @@ async function handleSQLQuery(query: string): Promise<QueryResult> {
       throw new Error('Failed to generate SQL query');
     }
 
-    const { success, sql, explanation, estimatedRows, error } = await generateResponse.json();
+    const generateData = await generateResponse.json();
+    console.log('📦 Generate API Response:', generateData);
+
+    const { success, sql, explanation, estimatedRows, error } = generateData;
 
     if (!success || error) {
       throw new Error(error || 'Failed to generate SQL query');
+    }
+
+    if (!sql || typeof sql !== 'string') {
+      console.error('❌ Invalid SQL from generate API:', { sql, type: typeof sql });
+      throw new Error('Generated SQL is invalid');
     }
 
     console.log('✅ Generated SQL:', sql);
     console.log('📝 Explanation:', explanation);
 
     // Step 2: Execute the generated SQL query via API
+    const executePayload = { sql };
+    console.log('📤 Sending to execute API:', executePayload);
+
     const executeResponse = await fetch('/api/execute-query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sql })
+      body: JSON.stringify(executePayload)
     });
 
     if (!executeResponse.ok) {

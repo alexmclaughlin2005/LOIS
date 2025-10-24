@@ -13,10 +13,14 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		const { sql } = await request.json();
+		const body = await request.json();
+		console.log('📥 Received request body:', JSON.stringify(body));
+
+		const { sql } = body;
 
 		if (!sql || typeof sql !== 'string') {
-			return json({ error: 'SQL query is required' }, { status: 400 });
+			console.error('❌ Invalid SQL parameter:', { sql, type: typeof sql });
+			return json({ error: 'SQL query is required and must be a string' }, { status: 400 });
 		}
 
 		console.log('🔍 Executing SQL:', sql);
@@ -24,6 +28,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Safety check: ensure query is SELECT only
 		const sqlUpper = sql.trim().toUpperCase();
 		if (!sqlUpper.startsWith('SELECT')) {
+			console.error('❌ Query does not start with SELECT:', sqlUpper.substring(0, 50));
 			return json({ error: 'Only SELECT queries are allowed' }, { status: 400 });
 		}
 
