@@ -348,7 +348,76 @@ async function handleGeneralQuestion(query: string, context?: QueryContext): Pro
   // and let the LLM respond conversationally
 
   try {
-    // Get some general stats for context
+    // Check if query mentions documents and we have case context
+    const isDocumentQuery = /document|file|pleading|motion|brief|contract|correspondence/i.test(query);
+    let documentData = null;
+    let caseNumbers: string[] = [];
+
+    if (isDocumentQuery && context?.previousResult && Array.isArray(context.previousResult)) {
+      // Extract case numbers from previous results
+      caseNumbers = context.previousResult
+        .map(row => row.case_number)
+        .filter(Boolean);
+
+      console.log('📄 Fetching documents for context:', caseNumbers);
+
+      if (caseNumbers.length > 0) {
+        // Fetch documents for these cases
+        const { data: docs, error: docsError } = await supabase
+          .from('documents')
+          .select(`
+            id,
+            title,
+            document_type,
+            content,
+            date_filed,
+            file_size,
+            projects!inner (case_number, title)
+          `)
+          .in('projects.case_number', caseNumbers)
+          .order('date_filed', { ascending: false })
+          .limit(20);
+
+        if (!docsError && docs) {
+          documentData = docs;
+          console.log('✅ Fetched', docs.length, 'documents for analysis');
+        }
+      }
+    }
+
+    // If we have document data, return it for LLM analysis
+    if (documentData && documentData.length > 0) {
+      return {
+        type: 'general',
+        action: `Analyzing ${documentData.length} documents for ${caseNumbers.length} case(s)`,
+        data: documentData,
+        prompt: `You are LOIS, a helpful legal operations intelligence assistant.
+
+The user asked: "${query}"
+
+Context: The user previously queried cases: ${caseNumbers.join(', ')}
+
+I've retrieved ${documentData.length} documents related to ${caseNumbers.length === 1 ? 'this case' : 'these cases'}:
+
+${documentData.map((doc: any, idx: number) => `
+${idx + 1}. **${doc.title}** (${doc.document_type})
+   - Case: ${doc.projects?.case_number}
+   - Filed: ${doc.date_filed || 'Unknown'}
+   - Content preview: ${doc.content?.substring(0, 500) || 'No content available'}...
+`).join('\n')}
+
+Please analyze these documents and respond to the user's request. If they asked for a summary:
+1. Identify the key themes across documents
+2. Note any important dates, parties, or legal arguments
+3. Highlight critical information from pleadings, motions, or briefs
+4. Organize by document type if helpful
+
+Be thorough but concise. Focus on legally relevant information.`,
+        sqlQuery: undefined
+      };
+    }
+
+    // No document context - provide general stats
     const { data: projects } = await supabase
       .from('projects')
       .select('case_type, status')
