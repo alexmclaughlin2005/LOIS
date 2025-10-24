@@ -152,7 +152,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 20px 24px;
+		padding: 16px 24px;
 		border-bottom: 1px solid #E5E5E5;
 	}
 
@@ -184,16 +184,16 @@
 	}
 
 	.form-content {
-		padding: 24px;
+		padding: 20px 24px;
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: 16px;
 	}
 
 	.field {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 6px;
 	}
 
 	.field-label {
@@ -280,7 +280,7 @@
 	.form-actions {
 		display: flex;
 		gap: 12px;
-		margin-top: 8px;
+		margin-top: 4px;
 	}
 
 	.btn-save,
