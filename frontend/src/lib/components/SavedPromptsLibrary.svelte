@@ -112,11 +112,13 @@
 <div class="library-overlay" on:click={onClose} role="presentation">
 	<div class="library-container" on:click|stopPropagation role="dialog" aria-modal="true">
 		{#if showCreation}
-			<PromptCreation
-				onSave={handleSavePrompt}
-				onCancel={handleCancelCreation}
-				editingPrompt={editingPrompt}
-			/>
+			<div class="creation-wrapper">
+				<PromptCreation
+					onSave={handleSavePrompt}
+					onCancel={handleCancelCreation}
+					editingPrompt={editingPrompt}
+				/>
+			</div>
 		{:else}
 			<div class="library-header">
 				<div class="header-top">
@@ -308,6 +310,14 @@
 		display: flex;
 		flex-direction: column;
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	}
+
+	.creation-wrapper {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 40px 20px;
+		min-height: 400px;
 	}
 
 	.library-header {
