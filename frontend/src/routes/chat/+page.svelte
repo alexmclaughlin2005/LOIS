@@ -6,8 +6,11 @@
 	import DataLoadingSkeleton from '$lib/components/DataLoadingSkeleton.svelte';
 	import RoutineCreationCard from '$lib/components/RoutineCreationCard.svelte';
 	import RoutinesLibrary from '$lib/components/RoutinesLibrary.svelte';
+	import QueryProcessingIndicator from '$lib/components/QueryProcessingIndicator.svelte';
 	import { testConnection } from '$lib/supabase';
 	import { getOpenPersonalInjuryCases, getCasesWithHighMedicalExpenses } from '$lib/queries';
+	import { routeQuery, formatResultForDisplay } from '$lib/queryRouter';
+	import type { QueryType } from '$lib/queryClassifier';
 
 	// Configure marked options
 	marked.setOptions({
@@ -49,8 +52,12 @@
 	let showRoutinesLibrary = false;
 
 	// Demo mode: track conversation state for hardcoded demo flow
-	let demoMode = true; // Set to true to enable demo mode
+	let demoMode = false; // Set to false to use query router
 	let demoState: 'initial' | 'showing_42_cases' | 'awaiting_followup' = 'initial';
+
+	// Query processing state
+	let currentQueryType: QueryType | null = null;
+	let currentQueryAction: string = '';
 
 	// Test database connection on mount
 	onMount(async () => {
@@ -343,117 +350,90 @@
 		}
 
 		try {
-			const response = await fetch('/api/chat', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ messages })
-			});
+			// Use query router to classify and handle the query
+			console.log('🔍 Routing query:', userMessage);
 
-			if (!response.ok) {
-				throw new Error('Failed to get response from API');
-			}
+			// Route the query through our classification system
+			const queryResult = await routeQuery(userMessage);
+			console.log('📊 Query result:', queryResult);
 
+			// Set query processing state for indicator
+			currentQueryType = queryResult.type;
+			currentQueryAction = queryResult.action;
+
+			// Show thinking state with query type indicator
 			isThinking = false;
 			isStreaming = true;
-			streamingContent = '';
-			streamingDisplayContent = '';
 
-			// Add empty assistant message that we'll update with streaming content
+			// Add empty assistant message that we'll update
 			messages = [...messages, { role: 'assistant', content: '' }];
 
-			const reader = response.body?.getReader();
-			const decoder = new TextDecoder();
-
-			if (!reader) throw new Error('No reader available');
-
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-
-				const chunk = decoder.decode(value);
-				const lines = chunk.split('\n');
-
-				for (const line of lines) {
-					if (line.startsWith('data: ')) {
-						const data = line.slice(6);
-						if (data === '[DONE]') {
-							isStreaming = false;
-							break;
-						}
-						try {
-							const parsed = JSON.parse(data);
-							if (parsed.text) {
-								streamingContent += parsed.text;
-
-								// Check if we're currently in a JSON array
-								const openBrackets = (streamingContent.match(/\[/g) || []).length;
-								const closeBrackets = (streamingContent.match(/\]/g) || []).length;
-								isStreamingJSON = openBrackets > closeBrackets && streamingContent.includes('[');
-
-								// Create display content (hide JSON if actively streaming it)
-								if (isStreamingJSON) {
-									// Show user's query as context while generating table
-									const lastUserMessage = messages[messages.length - 2];
-									if (lastUserMessage && lastUserMessage.role === 'user') {
-										streamingDisplayContent = `*"${lastUserMessage.content}"*\n\nGenerating data table...`;
-									} else {
-										streamingDisplayContent = 'Generating data table...';
-									}
-								} else {
-									streamingDisplayContent = streamingContent;
-								}
-
-								// Update the last message with streaming content
-								messages = messages.map((msg, idx) =>
-									idx === messages.length - 1
-										? { ...msg, content: streamingDisplayContent }
-										: msg
-								);
-							}
-						} catch (e) {
-							// Skip invalid JSON
-						}
-					}
-				}
+			// Check for errors
+			if (queryResult.error) {
+				messages = messages.map((msg, idx) =>
+					idx === messages.length - 1
+						? { ...msg, content: `I encountered an error: ${queryResult.error}` }
+						: msg
+				);
+				isStreaming = false;
+				currentQueryType = null;
+				return;
 			}
 
+			// Simulate brief processing delay
+			await new Promise(resolve => setTimeout(resolve, 300));
+
+			// Format the result
+			const formattedResult = formatResultForDisplay(queryResult);
+
+			// Update message with prompt (this will be sent to LLM in next phase)
+			// For now, we'll show the data directly
 			isStreaming = false;
-			isProcessingData = true; // Show loading skeleton
+			isProcessingData = true;
 
-			// Check if the final response contains structured data
-			console.log('Final streaming content:', streamingContent);
-			const structuredData = detectStructuredData(streamingContent);
-			console.log('Detected structured data:', structuredData);
+			await new Promise(resolve => setTimeout(resolve, 500));
 
-			if (structuredData) {
-				// Extract display content (text without JSON)
-				const displayContent = extractDisplayContent(streamingContent);
+			if (formattedResult.hasTable && formattedResult.tableData) {
+				// Create structured data for display
+				const structuredData = {
+					title: queryResult.type === 'sql' ? 'Query Results' :
+					        queryResult.type === 'document_search' ? 'Document Search Results' :
+					        'Information',
+					subtitle: 'Table ⋅ Version 1',
+					data: formattedResult.tableData
+				};
 
-				// Small delay to show processing state
-				await new Promise(resolve => setTimeout(resolve, 500));
-
-				// Update the last message to mark it has structured data
+				// Update message with structured data
 				messages = messages.map((msg, idx) =>
 					idx === messages.length - 1
 						? {
 							...msg,
+							content: formattedResult.message,
 							hasStructuredData: true,
 							structuredData,
-							displayContent: displayContent || msg.content
+							displayContent: formattedResult.message
 						}
 						: msg
 				);
-				// Store the data but don't show the panel automatically
+
 				currentResultsData = structuredData;
+			} else {
+				// Just show the message
+				messages = messages.map((msg, idx) =>
+					idx === messages.length - 1
+						? { ...msg, content: formattedResult.message }
+						: msg
+				);
 			}
 
 			isProcessingData = false;
+			currentQueryType = null;
+
 		} catch (error) {
 			console.error('Error sending message:', error);
 			isThinking = false;
 			isStreaming = false;
+			currentQueryType = null;
 			messages = [
 				...messages,
 				{
@@ -641,6 +621,18 @@
 					{#if isThinking}
 						<div class="thinking-indicator">
 							<span>Thinking...</span>
+						</div>
+					{/if}
+
+					{#if currentQueryType && isStreaming}
+						<div class="message-wrapper assistant-message-wrapper">
+							<div class="message assistant-message">
+								<QueryProcessingIndicator
+									queryType={currentQueryType}
+									action={currentQueryAction}
+									show={true}
+								/>
+							</div>
 						</div>
 					{/if}
 
