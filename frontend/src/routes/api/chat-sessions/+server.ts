@@ -4,8 +4,10 @@ import pkg from 'pg';
 const { Pool } = pkg;
 
 const pool = new Pool({
-	connectionString: 'postgres://postgres.lwnfjqoimobmgzxxonyg@aws-1-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require',
-	password: 'o7kbo9VwejmlWPh3'
+	connectionString: 'postgres://postgres.lwnfjqoimobmgzxxonyg:o7kbo9VwejmlWPh3@aws-1-us-east-1.pooler.supabase.com:6543/postgres',
+	ssl: {
+		rejectUnauthorized: false
+	}
 });
 
 // GET - Fetch all chat sessions (most recent first)
