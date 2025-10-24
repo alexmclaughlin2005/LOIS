@@ -232,6 +232,12 @@ The user is now asking a FOLLOW-UP question that may reference these ${context.p
 - If they say "this case", they likely mean case: ${context.previousResult[0]?.case_number || 'the first result'}
 - Extract specific IDs/case numbers from the sample above to build your WHERE clause
 - You can filter the previous results by adding WHERE conditions
+
+**IMPORTANT for cross-entity searches**:
+- If the question asks about "references", "mentions", "involves", or relationships to a person/entity
+- Search across ALL relevant tables: projects (title, description), contacts (first_name, last_name), documents (content, title), project_contacts (role)
+- Use JOINs to connect these tables and search for the term across all fields
+- Example: To find cases referencing "McLaughlin", search projects.title, projects.description, contacts.first_name, contacts.last_name, AND documents.content for matching case_numbers
 ` : `
 **Previous result**: Query executed successfully
 

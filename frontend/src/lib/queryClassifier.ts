@@ -53,14 +53,13 @@ export function classifyQuery(query: string): ClassificationResult {
   // Document Search indicators
   const documentIndicators = {
     keywords: [
-      'search', 'find documents', 'search documents', 'look for',
+      'search documents', 'look for documents', 'find documents',
       'find in documents', 'document containing', 'pleading', 'motion',
-      'contract', 'correspondence', 'evidence', 'filed', 'document'
+      'contract', 'correspondence', 'evidence', 'filed'
     ],
     patterns: [
-      /search (for|documents|files)/,
+      /search (documents|files)/,
       /find documents? (about|containing|with|mentioning)/,
-      /what documents? (mention|contain|reference)/,
       /show me documents? (where|that|containing)/,
       /(pleading|motion|brief|contract|correspondence) (about|regarding|for)/
     ]
@@ -105,6 +104,18 @@ export function classifyQuery(query: string): ClassificationResult {
   // Boost score for numeric thresholds
   if (/\d+\s*(hours|dollars|\$|cases|days|months)/.test(normalized)) {
     sqlScore += 1;
+  }
+
+  // Boost SQL score for follow-up queries referencing previous results
+  // These should use structured queries, not just document search
+  if (/(these|those|this|that) (cases|projects|results)/.test(normalized)) {
+    sqlScore += 3; // Strong boost to prefer SQL for cross-entity searches
+  }
+
+  // Queries asking about "references" to people/entities should use SQL
+  if (/reference|mention|involve|relate to|connected to/.test(normalized) &&
+      /(these|those|any of|which)/.test(normalized)) {
+    sqlScore += 2; // Prefer SQL for cross-entity relationship queries
   }
 
   // Check Document indicators
