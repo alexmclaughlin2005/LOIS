@@ -373,25 +373,41 @@ async function handleGeneralQuestion(query: string, context?: QueryContext): Pro
       console.log('📄 Fetching documents for context:', caseNumbers);
 
       if (caseNumbers.length > 0) {
-        // Fetch documents for these cases
-        const { data: docs, error: docsError } = await supabase
-          .from('documents')
-          .select(`
-            id,
-            title,
-            document_type,
-            content,
-            date_filed,
-            file_size,
-            projects!inner (case_number, title)
-          `)
-          .in('projects.case_number', caseNumbers)
-          .order('date_filed', { ascending: false })
-          .limit(20);
+        // First, get project IDs for these case numbers
+        const { data: projects, error: projectError } = await supabase
+          .from('projects')
+          .select('id, case_number')
+          .in('case_number', caseNumbers);
 
-        if (!docsError && docs) {
-          documentData = docs;
-          console.log('✅ Fetched', docs.length, 'documents for analysis');
+        if (!projectError && projects && projects.length > 0) {
+          const projectIds = projects.map(p => p.id);
+          console.log('✅ Found', projectIds.length, 'project IDs for cases:', caseNumbers);
+
+          // Now fetch documents for these project IDs
+          const { data: docs, error: docsError } = await supabase
+            .from('documents')
+            .select(`
+              id,
+              title,
+              document_type,
+              content,
+              date_filed,
+              file_size_kb,
+              project_id,
+              projects!inner (case_number, title)
+            `)
+            .in('project_id', projectIds)
+            .order('date_filed', { ascending: false })
+            .limit(20);
+
+          if (!docsError && docs) {
+            documentData = docs;
+            console.log('✅ Fetched', docs.length, 'documents for analysis');
+          } else if (docsError) {
+            console.error('❌ Error fetching documents:', docsError);
+          }
+        } else if (projectError) {
+          console.error('❌ Error fetching projects:', projectError);
         }
       }
     }
