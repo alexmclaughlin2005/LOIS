@@ -123,190 +123,76 @@ const SCHEMA_CONTEXT = `
 `;
 
 /**
- * Handle SQL-style queries
+ * Handle SQL-style queries using LLM to generate SQL
  */
 async function handleSQLQuery(query: string): Promise<QueryResult> {
-  // For now, we'll use predefined query patterns
-  // In Phase 4, we'll use LLM to generate SQL from natural language
-
-  const normalized = query.toLowerCase();
-
   try {
-    // Pattern 1: Open PI cases in discovery
-    if (normalized.includes('open') && normalized.includes('personal injury') && normalized.includes('discovery')) {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('case_number, title, status, phase, filing_date, estimated_value')
-        .eq('case_type', 'Personal Injury')
-        .eq('status', 'Open')
-        .eq('phase', 'Discovery');
+    // Step 1: Use LLM to generate SQL from natural language
+    console.log('🤖 Requesting SQL generation from LLM...');
+    const generateResponse = await fetch('/api/generate-query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
 
-      if (error) throw error;
-
-      return {
-        type: 'sql',
-        action: 'Querying open Personal Injury cases in Discovery phase',
-        data: data,
-        prompt: `You are a legal assistant analyzing case data. The user asked: "${query}"
-
-I found ${data.length} open Personal Injury cases currently in the Discovery phase.
-
-Present the results in a conversational way, highlighting key insights like:
-- Total number of cases
-- Any patterns in filing dates
-- Estimated values
-- Brief mention of specific cases if relevant
-
-Format the data as a table showing: Case Number, Title, Filing Date, and Estimated Value.`,
-        sqlQuery: 'SELECT case_number, title, status, phase FROM projects WHERE case_type = \'Personal Injury\' AND status = \'Open\' AND phase = \'Discovery\''
-      };
+    if (!generateResponse.ok) {
+      throw new Error('Failed to generate SQL query');
     }
 
-    // Pattern 2: High medical expenses
-    if (normalized.includes('medical expenses') || normalized.includes('medical costs')) {
-      const threshold = 100000; // Extract from query in future
-      const { data, error } = await supabase
-        .from('projects')
-        .select('case_number, title, status, custom_fields')
-        .eq('case_type', 'Personal Injury')
-        .filter('custom_fields->>medical_expenses', 'gt', threshold.toString());
+    const { success, sql, explanation, estimatedRows, error } = await generateResponse.json();
 
-      if (error) throw error;
-
-      // Format data to include medical expenses
-      const formattedData = data.map(row => ({
-        case_number: row.case_number,
-        title: row.title,
-        status: row.status,
-        medical_expenses: row.custom_fields?.medical_expenses || 0,
-        injury_type: row.custom_fields?.injury_type || 'Unknown'
-      }));
-
-      return {
-        type: 'sql',
-        action: `Querying cases with medical expenses exceeding $${threshold.toLocaleString()}`,
-        data: formattedData,
-        prompt: `You are a legal assistant analyzing personal injury cases. The user asked: "${query}"
-
-I found ${formattedData.length} cases where medical expenses exceed $${threshold.toLocaleString()}.
-
-Present the results highlighting:
-- Total number of matching cases
-- Range of medical expenses
-- Types of injuries
-- Any notable high-value cases
-
-Format as a table showing: Case Number, Title, Medical Expenses (formatted as currency), and Injury Type.`,
-        sqlQuery: `SELECT case_number, title, custom_fields FROM projects WHERE case_type = 'Personal Injury' AND (custom_fields->>'medical_expenses')::numeric > ${threshold}`
-      };
+    if (!success || error) {
+      throw new Error(error || 'Failed to generate SQL query');
     }
 
-    // Pattern 3: Count cases by type
-    if (normalized.includes('how many') && (normalized.includes('cases') || normalized.includes('projects'))) {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('case_type, status');
+    console.log('✅ Generated SQL:', sql);
+    console.log('📝 Explanation:', explanation);
 
-      if (error) throw error;
+    // Step 2: Execute the generated SQL query via API
+    const executeResponse = await fetch('/api/execute-query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql })
+    });
 
-      // Aggregate by type
-      const byType: Record<string, number> = {};
-      const byStatus: Record<string, number> = {};
-
-      data.forEach(row => {
-        byType[row.case_type] = (byType[row.case_type] || 0) + 1;
-        byStatus[row.status] = (byStatus[row.status] || 0) + 1;
-      });
-
-      return {
-        type: 'sql',
-        action: 'Calculating case statistics',
-        data: { total: data.length, byType, byStatus },
-        prompt: `You are a legal assistant providing case statistics. The user asked: "${query}"
-
-Total cases: ${data.length}
-
-Cases by type: ${JSON.stringify(byType, null, 2)}
-Cases by status: ${JSON.stringify(byStatus, null, 2)}
-
-Present these statistics in a clear, conversational way. Highlight:
-- Total number of cases
-- Breakdown by case type (percentages would be helpful)
-- Status distribution (Open vs. Closed vs. On Hold)
-- Any notable patterns or insights
-
-Use a friendly, professional tone.`,
-        sqlQuery: 'SELECT case_type, status FROM projects'
-      };
+    if (!executeResponse.ok) {
+      const errorData = await executeResponse.json();
+      throw new Error(errorData.error || 'Failed to execute query');
     }
 
-    // Pattern 4: Upcoming deadlines
-    if (normalized.includes('deadline') || normalized.includes('due')) {
-      const now = new Date().toISOString();
-      const thirtyDaysLater = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { success: execSuccess, data: resultData, error: execError } = await executeResponse.json();
 
-      const { data, error } = await supabase
-        .from('calendar_entries')
-        .select(`
-          title,
-          start_time,
-          entry_type,
-          projects (case_number, title)
-        `)
-        .eq('entry_type', 'Deadline')
-        .gte('start_time', now)
-        .lte('start_time', thirtyDaysLater)
-        .order('start_time', { ascending: true })
-        .limit(20);
-
-      if (error) throw error;
-
-      return {
-        type: 'sql',
-        action: 'Finding upcoming deadlines in the next 30 days',
-        data: data,
-        prompt: `You are a legal assistant managing deadlines. The user asked: "${query}"
-
-I found ${data.length} upcoming deadlines in the next 30 days.
-
-Present the results highlighting:
-- Number of deadlines
-- Most urgent deadlines (soonest)
-- Cases with multiple deadlines
-- Any deadlines this week
-
-Format as a table showing: Case, Deadline, Due Date (formatted as human-readable date).`,
-        sqlQuery: 'SELECT title, start_time FROM calendar_entries WHERE entry_type = \'Deadline\' AND start_time BETWEEN NOW() AND NOW() + INTERVAL \'30 days\''
-      };
+    if (!execSuccess || execError) {
+      throw new Error(execError || 'Query execution failed');
     }
 
-    // Default: General query
-    const { data, error } = await supabase
-      .from('projects')
-      .select('*')
-      .limit(10);
-
-    if (error) throw error;
+    console.log('✅ Query executed successfully, rows:', resultData?.length || 0);
 
     return {
       type: 'sql',
-      action: 'Searching case database',
-      data: data,
+      action: explanation,
+      data: resultData,
       prompt: `You are a legal assistant. The user asked: "${query}"
 
-I couldn't match this to a specific query pattern, so I'm showing recent cases.
+The system generated and executed this SQL query:
+\`\`\`sql
+${sql}
+\`\`\`
 
-Help the user by:
-1. Acknowledging their question
-2. Explaining what data we have available
-3. Suggesting how they could rephrase their query
-4. Showing some sample data
+Results: ${resultData?.length || 0} rows returned.
 
-Be helpful and guide them to ask more specific questions.`,
-      sqlQuery: 'SELECT * FROM projects LIMIT 10'
+Present the results in a clear, conversational way highlighting:
+- Key statistics and insights
+- Notable patterns or trends
+- Any important findings
+- Actionable information
+
+Be professional, concise, and helpful.`,
+      sqlQuery: sql
     };
 
   } catch (error: any) {
+    console.error('❌ SQL Query Error:', error);
     return {
       type: 'sql',
       action: 'Database query encountered an error',

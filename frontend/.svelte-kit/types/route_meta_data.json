@@ -3,6 +3,12 @@
 	"/api/chat": [
 		"src/routes/api/chat/+server.ts"
 	],
+	"/api/execute-query": [
+		"src/routes/api/execute-query/+server.ts"
+	],
+	"/api/generate-query": [
+		"src/routes/api/generate-query/+server.ts"
+	],
 	"/chat": [],
 	"/results": []
 }

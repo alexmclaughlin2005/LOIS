@@ -1,0 +1,273 @@
+import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import Anthropic from '@anthropic-ai/sdk';
+import { ANTHROPIC_API_KEY } from '$env/static/private';
+
+const anthropic = new Anthropic({
+	apiKey: ANTHROPIC_API_KEY
+});
+
+const DATABASE_SCHEMA = `
+# LOIS Database Schema
+
+## Tables Overview
+Your database contains legal case management data with the following tables:
+
+### 1. projects (Main case table)
+- id (UUID, primary key)
+- case_number (VARCHAR, unique) - Format: CV-2025-00001, CR-2025-00002, etc.
+- title (VARCHAR) - Case title/name
+- case_type (VARCHAR) - Types: Personal Injury, Corporate, Family Law, Criminal Defense, Real Estate, Employment, Intellectual Property, Estate Planning
+- status (VARCHAR) - Status: Open, Closed, Pending, On Hold
+- phase (VARCHAR) - Phases: Discovery, Trial, Settlement, Appeal, Potential New Client, etc.
+- priority (VARCHAR) - Priority: Low, Medium, High, Urgent
+- description (TEXT) - Case description
+- start_date (DATE) - Case start date
+- end_date (DATE) - Case end date (null if ongoing)
+- budget (DECIMAL) - Case budget
+- custom_fields (JSONB) - Case-specific data:
+  - Personal Injury cases: medical_expenses, lost_wages, injury_type, liability_percentage
+  - Corporate cases: contract_value, transaction_type, jurisdiction
+  - Family Law cases: custody_arrangement, child_support, alimony
+  - Criminal Defense cases: charges, plea_status, bail_amount
+  - Real Estate cases: property_value, transaction_type, closing_date
+  - Employment cases: claim_type, settlement_amount, termination_date
+  - IP cases: patent_number, trademark_name, infringement_type
+  - Estate Planning cases: estate_value, trust_type, beneficiaries
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+### 2. contacts
+- id (UUID, primary key)
+- first_name (VARCHAR)
+- last_name (VARCHAR)
+- email (VARCHAR)
+- phone (VARCHAR)
+- contact_type (VARCHAR) - Types: Client, Attorney, Witness, Expert, Court Personnel, Paralegal
+- company (VARCHAR)
+- notes (TEXT)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+### 3. project_contacts (Join table)
+- project_id (UUID, foreign key to projects)
+- contact_id (UUID, foreign key to contacts)
+- role (VARCHAR) - Role: Primary Attorney, Opposing Counsel, Client, Witness, Expert Witness, etc.
+- created_at (TIMESTAMP)
+
+### 4. documents
+- id (UUID, primary key)
+- project_id (UUID, foreign key to projects)
+- title (VARCHAR)
+- document_type (VARCHAR) - Types: Contract, Pleading, Discovery, Evidence, Correspondence, Brief, Motion, Memo
+- file_path (VARCHAR)
+- file_size (INTEGER) - in bytes
+- mime_type (VARCHAR)
+- content (TEXT) - Full-text searchable content
+- uploaded_by (VARCHAR)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+### 5. calendar_entries
+- id (UUID, primary key)
+- project_id (UUID, foreign key to projects)
+- title (VARCHAR)
+- entry_type (VARCHAR) - Types: Hearing, Deposition, Meeting, Deadline, Court Date, Filing Deadline
+- start_time (TIMESTAMP)
+- end_time (TIMESTAMP)
+- location (VARCHAR)
+- description (TEXT)
+- reminder_minutes (INTEGER)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+### 6. notes
+- id (UUID, primary key)
+- project_id (UUID, foreign key to projects)
+- content (TEXT)
+- created_by (VARCHAR)
+- is_private (BOOLEAN)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+### 7. tasks
+- id (UUID, primary key)
+- project_id (UUID, foreign key to projects)
+- title (VARCHAR)
+- description (TEXT)
+- assigned_to (VARCHAR)
+- status (VARCHAR) - Status: Pending, In Progress, Completed, Blocked
+- priority (VARCHAR) - Priority: Low, Medium, High, Urgent
+- due_date (DATE)
+- completed_at (TIMESTAMP)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+### 8. time_entries
+- id (UUID, primary key)
+- project_id (UUID, foreign key to projects)
+- user_name (VARCHAR)
+- description (TEXT)
+- hours (DECIMAL)
+- billable_rate (DECIMAL)
+- entry_date (DATE)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+### 9. expenses
+- id (UUID, primary key)
+- project_id (UUID, foreign key to projects)
+- description (TEXT)
+- amount (DECIMAL)
+- expense_category (VARCHAR) - Categories: Travel, Filing Fees, Expert Fees, Court Costs, Research, Office Supplies
+- expense_date (DATE)
+- receipt_path (VARCHAR)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+### 10. invoices
+- id (UUID, primary key)
+- project_id (UUID, foreign key to projects)
+- invoice_number (VARCHAR)
+- amount (DECIMAL)
+- status (VARCHAR) - Status: Draft, Sent, Paid, Overdue, Cancelled
+- issue_date (DATE)
+- due_date (DATE)
+- paid_date (DATE)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+## Important Query Guidelines
+
+1. **Date Queries**: Use PostgreSQL date functions like CURRENT_DATE, NOW(), INTERVAL
+   - Example: WHERE start_date > CURRENT_DATE - INTERVAL '30 days'
+
+2. **JSONB Queries**: Access custom_fields using -> or ->> operators
+   - Example: WHERE custom_fields->>'medical_expenses' > '100000'
+   - Example: WHERE custom_fields->>'injury_type' = 'Spinal Injury'
+
+3. **Full-Text Search**: Use to_tsvector and websearch_to_tsquery for document searches
+   - Example: WHERE to_tsvector('english', content) @@ websearch_to_tsquery('english', 'settlement agreement')
+
+4. **Joins**: Most common joins:
+   - projects ⟷ project_contacts ⟷ contacts (for case participants)
+   - projects ⟷ documents (for case documents)
+   - projects ⟷ calendar_entries (for case events)
+   - projects ⟷ time_entries (for billable hours)
+
+5. **Aggregations**: Common queries need COUNT, SUM, AVG functions
+   - Example: COUNT(*) for case counts
+   - Example: SUM(amount) for total expenses
+   - Example: AVG(hours) for average billable hours
+
+6. **Safety**: ONLY generate SELECT queries. NO INSERT, UPDATE, DELETE, DROP, etc.
+`;
+
+export const POST: RequestHandler = async ({ request }) => {
+	try {
+		const { query } = await request.json();
+
+		if (!query || typeof query !== 'string') {
+			return json({ error: 'Query is required' }, { status: 400 });
+		}
+
+		console.log('🔍 Generating SQL for query:', query);
+
+		// Use Claude to generate the SQL query
+		const message = await anthropic.messages.create({
+			model: 'claude-3-5-sonnet-20241022',
+			max_tokens: 2048,
+			messages: [
+				{
+					role: 'user',
+					content: `You are a PostgreSQL expert helping with a legal case management system.
+
+${DATABASE_SCHEMA}
+
+User's natural language query: "${query}"
+
+Generate a PostgreSQL query to answer this question. Respond with ONLY a JSON object in this exact format:
+{
+  "sql": "SELECT ... (the complete SQL query)",
+  "explanation": "A brief user-friendly explanation of what this query finds",
+  "estimated_rows": "approximate number of results (e.g., 'few', 'dozens', 'hundreds')",
+  "display_columns": ["column1", "column2"] // columns to show in table
+}
+
+Requirements:
+- ONLY generate SELECT queries (read-only)
+- Use proper JOIN syntax when multiple tables are needed
+- Include appropriate WHERE clauses for filtering
+- Add ORDER BY for logical sorting
+- Use LIMIT to prevent excessive results (default LIMIT 100, max 500)
+- For date ranges, use CURRENT_DATE and INTERVAL syntax
+- For JSONB fields in custom_fields, use ->> operator: custom_fields->>'field_name'
+- Select only the columns needed for display
+- Use clear column aliases for better readability
+- For aggregations, include GROUP BY
+
+Examples:
+- "cases with high medical expenses": SELECT case_number, title, (custom_fields->>'medical_expenses')::numeric as medical_expenses FROM projects WHERE case_type = 'Personal Injury' AND (custom_fields->>'medical_expenses')::numeric > 100000 ORDER BY (custom_fields->>'medical_expenses')::numeric DESC LIMIT 100
+- "upcoming deadlines": SELECT title, start_time, entry_type FROM calendar_entries WHERE entry_type = 'Deadline' AND start_time BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' ORDER BY start_time ASC LIMIT 100
+
+Respond ONLY with the JSON object, no other text.`
+				}
+			]
+		});
+
+		const content = message.content[0];
+		if (content.type !== 'text') {
+			throw new Error('Unexpected response type from Claude');
+		}
+
+		// Parse the JSON response
+		const responseText = content.text.trim();
+		console.log('📝 Claude response:', responseText);
+
+		// Extract JSON from potential markdown code blocks
+		let jsonText = responseText;
+		const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
+		if (jsonMatch) {
+			jsonText = jsonMatch[1];
+		} else if (responseText.startsWith('```')) {
+			jsonText = responseText.replace(/```[\s\S]*?\n/, '').replace(/```$/, '');
+		}
+
+		const result = JSON.parse(jsonText);
+
+		// Validate the response structure
+		if (!result.sql || !result.explanation) {
+			throw new Error('Invalid response structure from Claude');
+		}
+
+		// Safety check: ensure query is SELECT only
+		const sqlUpper = result.sql.trim().toUpperCase();
+		if (!sqlUpper.startsWith('SELECT')) {
+			throw new Error('Only SELECT queries are allowed');
+		}
+
+		// Check for dangerous keywords
+		const dangerousKeywords = ['DROP', 'DELETE', 'INSERT', 'UPDATE', 'TRUNCATE', 'ALTER', 'CREATE'];
+		for (const keyword of dangerousKeywords) {
+			if (sqlUpper.includes(keyword)) {
+				throw new Error(`Query contains forbidden keyword: ${keyword}`);
+			}
+		}
+
+		console.log('✅ Generated SQL:', result.sql);
+
+		return json({
+			success: true,
+			sql: result.sql,
+			explanation: result.explanation,
+			estimatedRows: result.estimated_rows
+		});
+
+	} catch (error) {
+		console.error('❌ Error generating query:', error);
+		return json({
+			success: false,
+			error: error instanceof Error ? error.message : 'Failed to generate query'
+		}, { status: 500 });
+	}
+};

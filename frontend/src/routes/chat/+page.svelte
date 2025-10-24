@@ -29,6 +29,7 @@
 			subtitle: string;
 			data: Array<Record<string, any>>;
 		};
+		sqlQuery?: string; // The SQL query that was executed (optional)
 		showActionButton?: boolean;
 		actionButtonText?: string;
 		actionButtonCallback?: () => void;
@@ -403,7 +404,7 @@
 					data: formattedResult.tableData
 				};
 
-				// Update message with structured data
+				// Update message with structured data and SQL query
 				messages = messages.map((msg, idx) =>
 					idx === messages.length - 1
 						? {
@@ -411,7 +412,8 @@
 							content: formattedResult.message,
 							hasStructuredData: true,
 							structuredData,
-							displayContent: formattedResult.message
+							displayContent: formattedResult.message,
+							sqlQuery: queryResult.sqlQuery // Include the SQL query
 						}
 						: msg
 				);
@@ -421,7 +423,11 @@
 				// Just show the message
 				messages = messages.map((msg, idx) =>
 					idx === messages.length - 1
-						? { ...msg, content: formattedResult.message }
+						? {
+							...msg,
+							content: formattedResult.message,
+							sqlQuery: queryResult.sqlQuery // Include SQL query even without table
+						}
 						: msg
 				);
 			}
@@ -594,6 +600,17 @@
 										<div class="message-content">{@html marked(message.displayContent)}</div>
 									{:else}
 										<div class="message-content">{@html marked(message.content)}</div>
+									{/if}
+									{#if message.sqlQuery}
+										<details class="sql-query-details">
+											<summary class="sql-query-summary">
+												<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+													<path d="M2 5L7 9L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+												</svg>
+												View SQL Query
+											</summary>
+											<pre class="sql-query-code"><code>{message.sqlQuery}</code></pre>
+										</details>
 									{/if}
 									{#if message.hasStructuredData && message.structuredData}
 										<DataPreviewCard
@@ -1083,6 +1100,58 @@
 		font-size: 14px;
 		color: var(--color-text-secondary);
 		text-align: left;
+	}
+
+	/* SQL Query Display */
+	.sql-query-details {
+		margin-top: 12px;
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		background: #f8f9fa;
+		overflow: hidden;
+	}
+
+	.sql-query-summary {
+		padding: 10px 12px;
+		cursor: pointer;
+		font-size: 13px;
+		font-weight: 500;
+		color: #666;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		user-select: none;
+		transition: background 0.15s;
+	}
+
+	.sql-query-summary:hover {
+		background: #f0f1f2;
+	}
+
+	.sql-query-summary svg {
+		transition: transform 0.2s;
+	}
+
+	.sql-query-details[open] .sql-query-summary svg {
+		transform: rotate(180deg);
+	}
+
+	.sql-query-code {
+		margin: 0;
+		padding: 12px;
+		background: #2d3748;
+		color: #e2e8f0;
+		font-size: 12px;
+		line-height: 1.6;
+		overflow-x: auto;
+		border-top: 1px solid var(--color-border);
+	}
+
+	.sql-query-code code {
+		background: none;
+		padding: 0;
+		color: inherit;
+		font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 	}
 
 	/* Action Button */
