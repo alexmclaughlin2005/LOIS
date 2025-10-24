@@ -1,8 +1,13 @@
 <script lang="ts">
+	import ResultsRenderer from './results/ResultsRenderer.svelte';
+
 	export let title: string = 'Results';
 	export let subtitle: string = 'Table ⋅ Version 1';
 	export let data: Array<Record<string, any>> = [];
 	export let onClose: () => void;
+
+	// View mode toggle: 'cards' or 'table'
+	let viewMode: 'cards' | 'table' = 'cards';
 
 	// Figma design uses exactly 4 columns
 	// We'll either use the Figma column names if they exist, or take first 4 columns
@@ -58,6 +63,35 @@
 					<p class="results-subtitle">{subtitle}</p>
 				</div>
 				<div class="results-header-right">
+					<!-- View Toggle -->
+					<div class="view-toggle">
+						<button
+							class="toggle-btn"
+							class:active={viewMode === 'cards'}
+							on:click={() => viewMode = 'cards'}
+							aria-label="Card view"
+							title="Card view"
+						>
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+								<rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+								<rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+								<rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+								<rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+							</svg>
+						</button>
+						<button
+							class="toggle-btn"
+							class:active={viewMode === 'table'}
+							on:click={() => viewMode = 'table'}
+							aria-label="Table view"
+							title="Table view"
+						>
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+								<path d="M2 4H14M2 8H14M2 12H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+							</svg>
+						</button>
+					</div>
+
 					<button class="share-button">
 						<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
 							<path d="M12 5L8 1M8 1L4 5M8 1V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -73,10 +107,22 @@
 				</div>
 			</header>
 
-			<!-- Data Table -->
-			<div class="results-table-wrapper">
+			<!-- Results Display -->
+			<div class="results-display-wrapper">
 				{#if data.length > 0}
-					<table class="results-table">
+					{#if viewMode === 'cards'}
+						<!-- Card View with ResultsRenderer -->
+						<div class="cards-view">
+							<ResultsRenderer
+								{data}
+								showGrouping={true}
+								defaultView="auto"
+							/>
+						</div>
+					{:else}
+						<!-- Table View (legacy) -->
+						<div class="table-view">
+							<table class="results-table">
 						<thead>
 							<tr>
 								{#each columns as column}
@@ -125,8 +171,10 @@
 									</td>
 								</tr>
 							{/each}
-						</tbody>
-					</table>
+							</tbody>
+						</table>
+						</div>
+					{/if}
 				{:else}
 					<div class="no-data">
 						<p>No data to display</p>
@@ -189,7 +237,43 @@
 	.results-header-right {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: 12px;
+	}
+
+	/* View Toggle */
+	.view-toggle {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 4px;
+		background: #F5F5F5;
+		border-radius: 6px;
+	}
+
+	.toggle-btn {
+		width: 32px;
+		height: 32px;
+		padding: 0;
+		border: none;
+		background: transparent;
+		border-radius: 4px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--color-text-secondary);
+		transition: all 0.15s;
+	}
+
+	.toggle-btn:hover {
+		background: #E5E5E5;
+		color: var(--color-text-primary);
+	}
+
+	.toggle-btn.active {
+		background: white;
+		color: var(--color-brand-black);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 	}
 
 	.share-button {
@@ -237,8 +321,19 @@
 		color: var(--color-text-primary);
 	}
 
-	/* Table */
-	.results-table-wrapper {
+	/* Results Display */
+	.results-display-wrapper {
+		overflow-y: auto;
+		height: 100%;
+	}
+
+	/* Cards View */
+	.cards-view {
+		padding: 0 20px;
+	}
+
+	/* Table View */
+	.table-view {
 		overflow-x: auto;
 		margin: 0 -20px;
 		padding: 0 20px;

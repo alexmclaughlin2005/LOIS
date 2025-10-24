@@ -631,22 +631,23 @@
 										</details>
 									{/if}
 									{#if message.hasStructuredData && message.structuredData}
-										<!-- Use ResultsRenderer for smart card display -->
-										<div class="inline-results">
-											<ResultsRenderer
+										{#if message.structuredData.data.length === 1}
+											<!-- Single result: Show full card inline -->
+											<div class="inline-single-result">
+												<ResultsRenderer
+													data={message.structuredData.data}
+													showGrouping={false}
+													defaultView="auto"
+												/>
+											</div>
+										{:else}
+											<!-- Multiple results: Show compact preview with "View Full" button -->
+											<DataPreviewCard
+												title={message.structuredData.title}
 												data={message.structuredData.data}
-												showGrouping={true}
-												defaultView="auto"
+												onViewFull={() => showResults(message.structuredData)}
 											/>
-										</div>
-										<!-- Keep legacy preview card for comparison (can remove later) -->
-										<!--
-										<DataPreviewCard
-											title={message.structuredData.title}
-											data={message.structuredData.data}
-											onViewFull={() => showResults(message.structuredData)}
-										/>
-										-->
+										{/if}
 									{/if}
 									{#if message.showActionButton && message.actionButtonText}
 										<button class="action-button" on:click={message.actionButtonCallback}>
@@ -1183,13 +1184,9 @@
 		font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 	}
 
-	/* Inline Results */
-	.inline-results {
+	/* Inline Single Result */
+	.inline-single-result {
 		margin-top: 16px;
-		padding: 16px;
-		background: #F9F9F9;
-		border-radius: 8px;
-		border: 1px solid #E0E0E0;
 	}
 
 	/* Action Button */
