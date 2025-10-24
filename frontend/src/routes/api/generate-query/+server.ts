@@ -222,9 +222,26 @@ ${context.previousSql}
 ${Array.isArray(context.previousResult) && context.previousResult.length > 0 ? `
 **Previous result**: Returned ${context.previousResult.length} rows
 
-**Sample of previous results** (first 2 rows):
+**Sample of previous results** (first 3 rows, key fields only):
 \`\`\`json
-${JSON.stringify(context.previousResult.slice(0, 2), null, 2)}
+${JSON.stringify(
+	context.previousResult.slice(0, 3).map(row => {
+		// Extract only essential fields to avoid context overflow
+		const essential: Record<string, any> = {};
+		if (row.case_number) essential.case_number = row.case_number;
+		if (row.id) essential.id = row.id;
+		if (row.title) essential.title = row.title;
+		if (row.first_name) essential.first_name = row.first_name;
+		if (row.last_name) essential.last_name = row.last_name;
+		if (row.email) essential.email = row.email;
+		if (row.case_type) essential.case_type = row.case_type;
+		if (row.status) essential.status = row.status;
+		if (row.phase) essential.phase = row.phase;
+		return essential;
+	}),
+	null,
+	2
+)}
 \`\`\`
 
 The user is now asking a FOLLOW-UP question that may reference these ${context.previousResult.length} results.
