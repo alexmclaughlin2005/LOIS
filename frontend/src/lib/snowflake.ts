@@ -6,6 +6,9 @@
  */
 
 import snowflake from 'snowflake-sdk';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import crypto from 'crypto';
 import {
 	SNOWFLAKE_ACCOUNT,
 	SNOWFLAKE_USER,
@@ -13,32 +16,82 @@ import {
 	SNOWFLAKE_DATABASE,
 	SNOWFLAKE_SCHEMA,
 	SNOWFLAKE_WAREHOUSE,
-	SNOWFLAKE_ROLE
+	SNOWFLAKE_ROLE,
+	SNOWFLAKE_PRIVATE_KEY_PASSWORD
 } from '$env/static/private';
 
 export interface SnowflakeConfig {
 	account: string;
 	username: string;
 	password?: string;
+	privateKey?: string;
 	database?: string;
 	schema?: string;
 	warehouse?: string;
 	role?: string;
+	authenticator?: string;
+}
+
+/**
+ * Load and decrypt the private key for Snowflake authentication
+ * Converts encrypted PKCS8 key to unencrypted format
+ */
+function loadPrivateKey(): string | undefined {
+	try {
+		const keyPath = join(process.cwd(), 'app_testing_rsa_key.p8');
+		const encryptedKey = readFileSync(keyPath, 'utf8');
+
+		// Decrypt the private key using the password
+		if (SNOWFLAKE_PRIVATE_KEY_PASSWORD) {
+			const privateKeyObject = crypto.createPrivateKey({
+				key: encryptedKey,
+				format: 'pem',
+				passphrase: SNOWFLAKE_PRIVATE_KEY_PASSWORD
+			});
+
+			// Export as unencrypted PKCS8 PEM format
+			const decryptedKey = privateKeyObject.export({
+				type: 'pkcs8',
+				format: 'pem'
+			});
+
+			return decryptedKey.toString();
+		}
+
+		return undefined;
+	} catch (error) {
+		console.warn('Failed to load private key:', error);
+		console.warn('Falling back to password authentication');
+		return undefined;
+	}
 }
 
 /**
  * Get Snowflake connection configuration from environment variables
  */
 export function getSnowflakeConfig(): SnowflakeConfig {
-	return {
+	const privateKey = loadPrivateKey();
+
+	const config: SnowflakeConfig = {
 		account: SNOWFLAKE_ACCOUNT,
 		username: SNOWFLAKE_USER,
-		password: SNOWFLAKE_PASSWORD,
 		database: SNOWFLAKE_DATABASE,
 		schema: SNOWFLAKE_SCHEMA,
 		warehouse: SNOWFLAKE_WAREHOUSE,
 		role: SNOWFLAKE_ROLE
 	};
+
+	// Use private key authentication if available, otherwise use password
+	if (privateKey) {
+		config.privateKey = privateKey;
+		config.authenticator = 'SNOWFLAKE_JWT';
+		console.log('Using private key authentication');
+	} else if (SNOWFLAKE_PASSWORD) {
+		config.password = SNOWFLAKE_PASSWORD;
+		console.log('Using password authentication');
+	}
+
+	return config;
 }
 
 /**
