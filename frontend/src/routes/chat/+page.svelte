@@ -1113,10 +1113,33 @@
 
 			<div class="chat-input-area">
 				<div class="input-wrapper">
-				<div class="data-source-indicator">
-					<span class="data-source-badge" class:snowflake={dataSource === 'snowflake'}>
-						{dataSource === 'snowflake' ? 'Structured Data' : 'Documents'}
-					</span>
+				<div class="data-source-toggle-container">
+					<div class="data-source-toggle">
+						<button
+							class="toggle-button"
+							class:active={dataSource === 'documents'}
+							on:click={() => dataSource = 'documents'}
+						>
+							<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+								<rect x="2" y="2" width="10" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/>
+								<path d="M5 5H9M5 8H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+							</svg>
+							Documents
+						</button>
+						<button
+							class="toggle-button"
+							class:active={dataSource === 'snowflake'}
+							on:click={() => dataSource = 'snowflake'}
+						>
+							<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+								<path d="M2 3H12M2 7H12M2 11H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+								<circle cx="5" cy="3" r="1" fill="currentColor"/>
+								<circle cx="9" cy="7" r="1" fill="currentColor"/>
+								<circle cx="6" cy="11" r="1" fill="currentColor"/>
+							</svg>
+							Structured Data
+						</button>
+					</div>
 				</div>
 				<input
 					type="text"
@@ -1750,27 +1773,48 @@
 		background: #333;
 	}
 
-	/* Data Source Indicator */
-	.data-source-indicator {
-		margin-bottom: 8px;
+	/* Data Source Toggle */
+	.data-source-toggle-container {
+		display: flex;
+		justify-content: center;
+		margin-bottom: 16px;
 	}
 
-	.data-source-badge {
-		display: inline-flex;
+	.data-source-toggle {
+		display: flex;
+		gap: 4px;
+		background: #f5f5f5;
+		padding: 4px;
+		border-radius: 8px;
+	}
+
+	.toggle-button {
+		padding: 8px 16px;
+		border: none;
+		background: transparent;
+		border-radius: 6px;
+		font-size: 13px;
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		display: flex;
 		align-items: center;
-		padding: 4px 10px;
-		border-radius: 12px;
-		font-size: 12px;
+		gap: 6px;
+		transition: all 0.15s;
 		font-weight: 500;
-		background: #f0f0f0;
-		color: #666;
-		border: 1px solid #e0e0e0;
 	}
 
-	.data-source-badge.snowflake {
-		background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-		color: #1565c0;
-		border-color: #90caf9;
+	.toggle-button:hover {
+		background: rgba(255, 255, 255, 0.5);
+	}
+
+	.toggle-button.active {
+		background: white;
+		color: var(--color-text-primary);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	}
+
+	.toggle-button svg {
+		flex-shrink: 0;
 	}
 
 	@media (max-width: 768px) {
