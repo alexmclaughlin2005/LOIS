@@ -83,7 +83,7 @@ This schema contains views with legal case and project data.
 - Types of people (client, attorney, etc.)
 - Person role classification
 
-**VW_DATABRIDGE_PROJECT_CALENDAR_DATA_V1**
+**VW_DATABRIDGE_PROJECT_CALENDAR_V1**
 - Calendar events for projects
 - Deadlines and appointments
 
@@ -91,46 +91,49 @@ This schema contains views with legal case and project data.
 - Contacts associated with projects
 - Project team members
 
-**VW_DATABRIDGE_PROJECT_CUSTOM_DATA_V1**
-- Custom project fields
-- Extended project attributes
+**VW_DATABRIDGE_PROJECT_LIST_DATA_V1**
+- Main project/case list
+- Core project/case data with names, status, dates, etc.
+- USE THIS VIEW for finding cases and projects
 
 **VW_DATABRIDGE_PROJECT_SECTIONS_DATA_V1**
 - Project sections/phases
 - Project organization
 
-**VW_DATABRIDGE_PROJECT_STANDARD_DATA_V1**
-- Standard project fields
-- Core project/case data
-
 **VW_DATABRIDGE_PROJECT_TAGS_DATA_V1**
 - Tags applied to projects
 - Project categorization
 
-**VW_DATABRIDGE_PROJECT_TYPES_DATA_V1**
-- Types of projects (cases, matters, etc.)
-- Project classification
+**VW_DATABRIDGE_PROJECT_TEAMS_DATA_V1**
+- Project team members
+- Team assignments
 
-**VW_DATABRIDGE_TIME_ENTRIES_DATA_V1**
-- Time entry records
-- Billable hours and time tracking
+**VW_DATABRIDGE_TAGS_DATA_V1**
+- Master tags list
+- All available tags
+
+**VW_DATABRIDGE_USERS_V1**
+- System users
+- User information and access
 
 ## Query Guidelines:
 
 1. Always use fully qualified names: TEAM_THC2.DATABRIDGE.view_name
-2. Use LIMIT clauses to prevent large result sets
+2. Use LIMIT clauses to prevent large result sets (default to LIMIT 100)
 3. These are views (read-only), not tables
-4. Focus on VW_DATABRIDGE_PROJECT_STANDARD_DATA_V1 for case/matter queries
+4. Focus on VW_DATABRIDGE_PROJECT_LIST_DATA_V1 for case/project queries
 5. Join with VW_DATABRIDGE_PERSON_STANDARD_DATA_V1 for client information
 6. Use VW_DATABRIDGE_DOCS_V1 for document-related queries
+7. Use VW_DATABRIDGE_USERS_V1 for user/team member information
 
 ## Common Query Patterns:
 
-- **Finding cases**: Query VW_DATABRIDGE_PROJECT_STANDARD_DATA_V1
+- **Finding cases/projects**: Query VW_DATABRIDGE_PROJECT_LIST_DATA_V1 (this is the main view for projects)
 - **Client information**: Query VW_DATABRIDGE_CLIENT_INFO_V1 or VW_DATABRIDGE_PERSON_STANDARD_DATA_V1
 - **Billing/financial**: Query VW_DATABRIDGE_INVOICE_DATA_V1 or VW_DATABRIDGE_BILLING_TRANSACTION_DATA_V1
 - **Documents**: Query VW_DATABRIDGE_DOCS_V1
-- **Time tracking**: Query VW_DATABRIDGE_TIME_ENTRIES_DATA_V1
+- **Notes/comments**: Query VW_DATABRIDGE_NOTES_DATA_V1 or VW_DATABRIDGE_COMMENTS_DATA_V1
+- **Users/team**: Query VW_DATABRIDGE_USERS_V1 or VW_DATABRIDGE_PROJECT_TEAMS_DATA_V1
 `;
 
 /**
