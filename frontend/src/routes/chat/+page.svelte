@@ -16,6 +16,7 @@
 	import { routeQuery, formatResultForDisplay } from '$lib/queryRouter';
 	import type { QueryType } from '$lib/queryClassifier';
 	import type { Routine } from '$lib/types/routine';
+	import { SNOWFLAKE_SCHEMA_CONTEXT } from '$lib/snowflakeSchemaContext';
 
 	// Configure marked options
 	marked.setOptions({
@@ -89,6 +90,9 @@
 	let currentSessionId: string | null = null;
 	let sessionTitle: string = 'New Chat';
 
+	// Data source for queries
+	let dataSource: 'documents' | 'snowflake' = 'documents';
+
 	// Test database connection on mount
 	onMount(async () => {
 		console.log('🔌 Testing Supabase connection...');
@@ -102,6 +106,10 @@
 			console.log(`📊 Found ${piCases.length} open PI cases in discovery`);
 			console.log(`💰 Found ${highExpenseCases.length} cases with medical expenses >$100k`);
 		}
+
+		// Read source parameter from URL
+		const urlSource = $page.url.searchParams.get('source') || 'documents';
+		dataSource = urlSource as any;
 
 		// Check if there's a session parameter to load
 		const sessionParam = $page.url.searchParams.get('session');
@@ -537,6 +545,60 @@
 				demoState = 'awaiting_followup';
 				return;
 			}
+		}
+
+		// Handle Snowflake queries
+		if (dataSource === 'snowflake') {
+			try {
+				const response = await fetch('/api/snowflake/nl-query', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						question: userMessage,
+						schemaContext: SNOWFLAKE_SCHEMA_CONTEXT
+					})
+				});
+
+				const result = await response.json();
+
+				if (result.success) {
+					// Add assistant message with SQL and results
+					messages = [
+						...messages,
+						{
+							role: 'assistant',
+							content: result.summary,
+							sqlQuery: result.sql,
+							hasStructuredData: result.results.length > 0,
+							structuredData: {
+								title: 'Query Results',
+								subtitle: `${result.rowCount} rows returned`,
+								data: result.results
+							}
+						}
+					];
+				} else {
+					messages = [
+						...messages,
+						{
+							role: 'assistant',
+							content: `I encountered an error: ${result.error}`
+						}
+					];
+				}
+			} catch (error: any) {
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						content: `Error querying Snowflake: ${error.message}`
+					}
+				];
+			}
+
+			isThinking = false;
+			inputValue = '';
+			return;
 		}
 
 		try {
@@ -1051,6 +1113,11 @@
 
 			<div class="chat-input-area">
 				<div class="input-wrapper">
+				<div class="data-source-indicator">
+					<span class="data-source-badge" class:snowflake={dataSource === 'snowflake'}>
+						{dataSource === 'snowflake' ? 'Structured Data' : 'Documents'}
+					</span>
+				</div>
 				<input
 					type="text"
 					class="chat-input"
@@ -1681,6 +1748,29 @@
 
 	.send-button:hover {
 		background: #333;
+	}
+
+	/* Data Source Indicator */
+	.data-source-indicator {
+		margin-bottom: 8px;
+	}
+
+	.data-source-badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 4px 10px;
+		border-radius: 12px;
+		font-size: 12px;
+		font-weight: 500;
+		background: #f0f0f0;
+		color: #666;
+		border: 1px solid #e0e0e0;
+	}
+
+	.data-source-badge.snowflake {
+		background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+		color: #1565c0;
+		border-color: #90caf9;
 	}
 
 	@media (max-width: 768px) {
