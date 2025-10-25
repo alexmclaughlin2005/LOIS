@@ -22,6 +22,9 @@
 	"/api/generate-response": [
 		"src/routes/api/generate-response/+server.ts"
 	],
+	"/api/snowflake/explore": [
+		"src/routes/api/snowflake/explore/+server.ts"
+	],
 	"/api/snowflake/query": [
 		"src/routes/api/snowflake/query/+server.ts"
 	],

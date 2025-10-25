@@ -55,50 +55,41 @@ export const GET: RequestHandler = async ({ url }) => {
 				});
 
 			case 'tables':
-				// List tables and views in a schema
+				// List tables and views in a schema using INFORMATION_SCHEMA
 				if (!database || !schema) {
 					return json(
 						{ success: false, error: 'Database and schema parameters are required' },
 						{ status: 400 }
 					);
 				}
-				query = `SHOW TABLES IN SCHEMA ${database}.${schema}`;
+				// Use INFORMATION_SCHEMA.TABLES which has consistent column names
+				query = `
+					SELECT
+						TABLE_NAME as name,
+						TABLE_SCHEMA as schema_name,
+						TABLE_CATALOG as database_name,
+						TABLE_TYPE as kind,
+						ROW_COUNT as rows,
+						BYTES as bytes,
+						CREATED as created_on
+					FROM ${database}.INFORMATION_SCHEMA.TABLES
+					WHERE TABLE_SCHEMA = '${schema}'
+					ORDER BY TABLE_NAME
+				`;
 				results = await executeSnowflakeQuery(query);
-				const tablesData = results.map((row) => ({
-					name: row.name || row.NAME,
-					database_name: row.database_name || row.DATABASE_NAME,
-					schema_name: row.schema_name || row.SCHEMA_NAME,
-					kind: row.kind || row.KIND || 'TABLE',
-					rows: row.rows || row.ROWS || 0,
-					bytes: row.bytes || row.BYTES || 0,
-					created_on: row.created_on || row.CREATED_ON
-				}));
-
-				// Also get views
-				const viewQuery = `SHOW VIEWS IN SCHEMA ${database}.${schema}`;
-				try {
-					const viewResults = await executeSnowflakeQuery(viewQuery);
-					const viewsData = viewResults.map((row) => ({
-						name: row.name || row.NAME,
-						database_name: row.database_name || row.DATABASE_NAME,
-						schema_name: row.schema_name || row.SCHEMA_NAME,
-						kind: 'VIEW',
-						rows: 0,
-						bytes: 0,
-						created_on: row.created_on || row.CREATED_ON
-					}));
-					tablesData.push(...viewsData);
-				} catch (e) {
-					// Views might not exist, that's okay
-				}
+				console.log('Tables from INFORMATION_SCHEMA (first row):', JSON.stringify(results[0], null, 2));
 
 				return json({
 					success: true,
-					data: tablesData.sort((a, b) => {
-						const nameA = a.name || '';
-						const nameB = b.name || '';
-						return nameA.localeCompare(nameB);
-					})
+					data: results.map((row) => ({
+						name: row.name || row.NAME || 'Unknown',
+						database_name: row.database_name || row.DATABASE_NAME || database,
+						schema_name: row.schema_name || row.SCHEMA_NAME || schema,
+						kind: (row.kind || row.KIND || 'TABLE').replace('BASE TABLE', 'TABLE'),
+						rows: row.rows || row.ROWS || 0,
+						bytes: row.bytes || row.BYTES || 0,
+						created_on: row.created_on || row.CREATED_ON
+					}))
 				});
 
 			case 'columns':
