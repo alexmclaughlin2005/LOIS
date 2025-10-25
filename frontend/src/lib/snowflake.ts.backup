@@ -169,16 +169,10 @@ export async function executeSnowflakeQuery<T = any>(
 				// Debug logging for SHOW commands
 				if (query.trim().toUpperCase().startsWith('SHOW')) {
 					console.log('SHOW command column names from Snowflake SDK:' , columnNames);
-					if (rows && rows.length > 0) {
-						console.log('First row RAW data:' , rows[0]);
-					}
 				}
 
-					const results = (rows || []).map((row, rowIndex) => {
+					const results = (rows || []).map(row => {
 						const obj: any = {};
-					if (rowIndex === 0 && query.trim().toUpperCase().startsWith('SHOW')) {
-						console.log('First row MAPPED:' , obj);
-					}
 						columnNames.forEach((name, index) => {
 							obj[name] = row[index];
 						});
@@ -233,7 +227,7 @@ export async function getSnowflakeTables(): Promise<Array<{ name: string; type: 
 
 	try {
 		const results = await executeSnowflakeQuery<any>(query);
-		return results.map((row, rowIndex) => ({
+		return results.map(row => ({
 			name: row.name || row.NAME,
 			type: row.kind || row.KIND || 'TABLE'
 		}));
@@ -257,7 +251,7 @@ export async function getTableSchema(tableName: string): Promise<Array<{
 
 	try {
 		const results = await executeSnowflakeQuery<any>(query);
-		return results.map((row, rowIndex) => ({
+		return results.map(row => ({
 			name: row.name || row.NAME,
 			type: row.type || row.TYPE,
 			nullable: (row.null || row.NULL) === 'Y'
