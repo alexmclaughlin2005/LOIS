@@ -31,12 +31,16 @@ User question: "${question}"
 
 Generate a valid Snowflake SQL query to answer this question.
 
-IMPORTANT RULES:
+CRITICAL RULES:
 1. Only SELECT queries are allowed (no INSERT, UPDATE, DELETE, DROP, etc.)
-2. Use LIMIT 100 to prevent large result sets
-3. Focus on the TEAM_THC2.DATABRIDGE schema which contains legal/project data
-4. Return ONLY the SQL query, no explanations or markdown formatting
-5. If the question cannot be answered with the available schema, return "ERROR: Cannot generate query"
+2. ALWAYS use LIMIT 100 to prevent large result sets
+3. Use fully qualified names: TEAM_THC2.DATABRIDGE.view_name
+4. The main view is VW_DATABRIDGE_PROJECT_LIST_DATA_V1
+5. For project phase/status, use PHASE_NAME column (NOT "status" or "STATUS")
+6. For case numbers, use PROJECT_NUMBER column
+7. For client names, use CLIENT_FULL_NAME column
+8. Return ONLY the SQL query, no explanations, no markdown code blocks
+9. If the question cannot be answered, return "ERROR: Cannot generate query"
 
 SQL Query:`;
 
