@@ -150,6 +150,7 @@ export async function executeSnowflakeQuery<T = any>(
 		connection.execute({
 			sqlText: query,
 			binds: binds,
+			rowMode: 'array', // Force array mode so our mapping logic works
 			complete: (err, stmt, rows) => {
 				// Close connection
 				connection.destroy((destroyErr) => {
