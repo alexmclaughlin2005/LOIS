@@ -62,36 +62,39 @@ export const GET: RequestHandler = async ({ url }) => {
 						{ status: 400 }
 					);
 				}
-				// Use INFORMATION_SCHEMA.TABLES which has consistent column names
+				// Query INFORMATION_SCHEMA.TABLES
+				// Note: Snowflake SDK returns original column names (uppercase), not SQL aliases
 				query = `
 					SELECT
-						TABLE_NAME as name,
-						TABLE_SCHEMA as schema_name,
-						TABLE_CATALOG as database_name,
-						TABLE_TYPE as kind,
-						ROW_COUNT as row_count,
-						BYTES as byte_count,
-						CREATED as created_on
+						TABLE_NAME,
+						TABLE_SCHEMA,
+						TABLE_CATALOG,
+						TABLE_TYPE,
+						ROW_COUNT,
+						BYTES,
+						CREATED
 					FROM ${database}.INFORMATION_SCHEMA.TABLES
 					WHERE TABLE_SCHEMA = '${schema}'
 					ORDER BY TABLE_NAME
 				`;
 				console.log('Executing query for database:', database, 'schema:', schema);
-				console.log('Query:', query);
 				results = await executeSnowflakeQuery(query);
 				console.log('Query returned', results.length, 'results');
-				console.log('Tables from INFORMATION_SCHEMA (first row):', JSON.stringify(results[0], null, 2));
+				if (results.length > 0) {
+					console.log('First result keys:', Object.keys(results[0]));
+					console.log('First result:', JSON.stringify(results[0], null, 2));
+				}
 
 				return json({
 					success: true,
 					data: results.map((row) => ({
-						name: row.name || row.NAME || 'Unknown',
-						database_name: row.database_name || row.DATABASE_NAME || database,
-						schema_name: row.schema_name || row.SCHEMA_NAME || schema,
-						kind: (row.kind || row.KIND || 'TABLE').replace('BASE TABLE', 'TABLE'),
-						rows: row.row_count || row.ROW_COUNT || 0,
-						bytes: row.byte_count || row.BYTE_COUNT || 0,
-						created_on: row.created_on || row.CREATED_ON
+						name: row.TABLE_NAME || row.table_name || 'Unknown',
+						database_name: row.TABLE_CATALOG || row.table_catalog || database,
+						schema_name: row.TABLE_SCHEMA || row.table_schema || schema,
+						kind: (row.TABLE_TYPE || row.table_type || 'TABLE').replace('BASE TABLE', 'TABLE'),
+						rows: row.ROW_COUNT || row.row_count || 0,
+						bytes: row.BYTES || row.bytes || 0,
+						created_on: row.CREATED || row.created
 					}))
 				});
 
