@@ -15,10 +15,26 @@
 	let selectedTable: string | null = null;
 
 	let activeView: 'databases' | 'schemas' | 'tables' | 'columns' | 'preview' = 'databases';
+	let testConnection = false;
+	let connectionStatus: { success: boolean; message?: string } | null = null;
 
 	onMount(async () => {
+		await testSnowflakeConnection();
 		await loadDatabases();
 	});
+
+	async function testSnowflakeConnection() {
+		testConnection = true;
+		try {
+			const response = await fetch('/api/snowflake/test');
+			const data = await response.json();
+			connectionStatus = data;
+		} catch (e: any) {
+			connectionStatus = { success: false, message: 'Failed to connect to Snowflake' };
+		} finally {
+			testConnection = false;
+		}
+	}
 
 	async function loadDatabases() {
 		loading = true;
@@ -156,27 +172,77 @@
 
 <div class="snowflake-explorer">
 	<div class="explorer-header">
-		<h2>Snowflake Data Explorer</h2>
+		<div class="header-top">
+			<h2>Snowflake Data Explorer</h2>
+			{#if connectionStatus}
+				<div class="connection-status" class:connected={connectionStatus.success}>
+					<span class="status-dot"></span>
+					{connectionStatus.success ? 'Connected' : 'Disconnected'}
+				</div>
+			{/if}
+		</div>
 		<div class="breadcrumb">
-			<button class="breadcrumb-item" on:click={loadDatabases}>Databases</button>
+			<button class="breadcrumb-item" on:click={loadDatabases}>
+				<span class="breadcrumb-icon">🏠</span>
+				Databases
+			</button>
 			{#if selectedDatabase}
-				<span class="breadcrumb-sep">/</span>
+				<span class="breadcrumb-sep">›</span>
 				<button class="breadcrumb-item" on:click={() => selectDatabase(selectedDatabase)}>
 					{selectedDatabase}
 				</button>
 			{/if}
 			{#if selectedSchema}
-				<span class="breadcrumb-sep">/</span>
+				<span class="breadcrumb-sep">›</span>
 				<button class="breadcrumb-item" on:click={() => selectSchema(selectedSchema)}>
 					{selectedSchema}
 				</button>
 			{/if}
 			{#if selectedTable}
-				<span class="breadcrumb-sep">/</span>
+				<span class="breadcrumb-sep">›</span>
 				<span class="breadcrumb-item active">{selectedTable}</span>
 			{/if}
 		</div>
 	</div>
+
+	<!-- Quick Access Section -->
+	{#if activeView === 'databases' && databases.length > 0}
+		<div class="quick-access">
+			<h3>Quick Access</h3>
+			<div class="quick-buttons">
+				<button
+					class="quick-button"
+					on:click={async () => {
+						await selectDatabase('TEAM_THC2');
+						setTimeout(async () => {
+							await selectSchema('DATABRIDGE');
+						}, 100);
+					}}
+				>
+					<span class="quick-icon">⚡</span>
+					<div>
+						<div class="quick-title">Project Data</div>
+						<div class="quick-desc">TEAM_THC2.DATABRIDGE</div>
+					</div>
+				</button>
+				<button
+					class="quick-button"
+					on:click={async () => {
+						await selectDatabase('PRODUCT');
+						setTimeout(async () => {
+							await selectSchema('TESTING');
+						}, 100);
+					}}
+				>
+					<span class="quick-icon">🧪</span>
+					<div>
+						<div class="quick-title">Testing Schema</div>
+						<div class="quick-desc">PRODUCT.TESTING</div>
+					</div>
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	{#if error}
 		<div class="error-message">
@@ -189,7 +255,10 @@
 	{:else}
 		{#if activeView === 'databases'}
 			<div class="explorer-section">
-				<h3>Databases ({databases.length})</h3>
+				<div class="section-header">
+					<h3>Databases ({databases.length})</h3>
+					<p class="hint">💡 Click on a database to explore its schemas</p>
+				</div>
 				<div class="item-list">
 					{#each databases as db}
 						<button class="item-card" on:click={() => selectDatabase(db.name)}>
@@ -198,13 +267,17 @@
 								<div class="item-name">{db.name}</div>
 								<div class="item-meta">Owner: {db.owner || 'N/A'}</div>
 							</div>
+							<div class="item-arrow">›</div>
 						</button>
 					{/each}
 				</div>
 			</div>
 		{:else if activeView === 'schemas'}
 			<div class="explorer-section">
-				<h3>Schemas in {selectedDatabase} ({schemas.length})</h3>
+				<div class="section-header">
+					<h3>Schemas in {selectedDatabase} ({schemas.length})</h3>
+					<p class="hint">💡 Select a schema to view its tables and views</p>
+				</div>
 				<div class="item-list">
 					{#each schemas as schema}
 						<button class="item-card" on:click={() => selectSchema(schema.name)}>
@@ -213,13 +286,17 @@
 								<div class="item-name">{schema.name}</div>
 								<div class="item-meta">Owner: {schema.owner || 'N/A'}</div>
 							</div>
+							<div class="item-arrow">›</div>
 						</button>
 					{/each}
 				</div>
 			</div>
 		{:else if activeView === 'tables'}
 			<div class="explorer-section">
-				<h3>Tables & Views in {selectedDatabase}.{selectedSchema} ({tables.length})</h3>
+				<div class="section-header">
+					<h3>Tables & Views in {selectedDatabase}.{selectedSchema} ({tables.length})</h3>
+					<p class="hint">💡 Click on a table or view to see its schema and data preview</p>
+				</div>
 				<div class="item-list">
 					{#each tables as table}
 						<button class="item-card" on:click={() => selectTable(table.name)}>
@@ -227,9 +304,13 @@
 							<div class="item-info">
 								<div class="item-name">{table.name}</div>
 								<div class="item-meta">
-									{table.kind} • {table.rows.toLocaleString()} rows
+									<span class="badge">{table.kind}</span>
+									{#if table.rows > 0}
+										• {table.rows.toLocaleString()} rows
+									{/if}
 								</div>
 							</div>
+							<div class="item-arrow">›</div>
 						</button>
 					{/each}
 				</div>
@@ -324,11 +405,48 @@
 		margin-bottom: 24px;
 	}
 
+	.header-top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 12px;
+	}
+
 	.explorer-header h2 {
-		margin: 0 0 12px 0;
+		margin: 0;
 		font-size: 24px;
 		font-weight: 600;
 		color: var(--color-text-primary);
+	}
+
+	.connection-status {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 6px 12px;
+		border-radius: 20px;
+		font-size: 13px;
+		font-weight: 500;
+		background: #fee;
+		color: #c33;
+	}
+
+	.connection-status.connected {
+		background: #efe;
+		color: #3a3;
+	}
+
+	.status-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: currentColor;
+		animation: pulse 2s ease-in-out infinite;
+	}
+
+	@keyframes pulse {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.5; }
 	}
 
 	.breadcrumb {
@@ -339,31 +457,117 @@
 	}
 
 	.breadcrumb-item {
+		display: flex;
+		align-items: center;
+		gap: 6px;
 		background: none;
 		border: none;
 		color: var(--color-primary);
 		cursor: pointer;
-		padding: 4px 8px;
-		border-radius: 4px;
+		padding: 6px 12px;
+		border-radius: 6px;
 		font-family: inherit;
+		font-size: 14px;
+		transition: all 0.2s;
 	}
 
 	.breadcrumb-item:hover {
-		background: var(--color-primary-hover);
+		background: rgba(255, 107, 157, 0.1);
 	}
 
 	.breadcrumb-item.active {
 		color: var(--color-text-primary);
 		cursor: default;
 		font-weight: 500;
+		background: rgba(0, 0, 0, 0.05);
 	}
 
 	.breadcrumb-item.active:hover {
-		background: none;
+		background: rgba(0, 0, 0, 0.05);
+	}
+
+	.breadcrumb-icon {
+		font-size: 16px;
 	}
 
 	.breadcrumb-sep {
 		color: var(--color-text-tertiary);
+		font-size: 18px;
+		margin: 0 4px;
+	}
+
+	.quick-access {
+		margin-bottom: 32px;
+		padding: 20px;
+		background: linear-gradient(135deg, rgba(255, 107, 157, 0.05) 0%, rgba(200, 109, 215, 0.05) 100%);
+		border-radius: 12px;
+		border: 1px solid rgba(255, 107, 157, 0.1);
+	}
+
+	.quick-access h3 {
+		margin: 0 0 16px 0;
+		font-size: 16px;
+		font-weight: 600;
+		color: var(--color-text-primary);
+	}
+
+	.quick-buttons {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+		gap: 12px;
+	}
+
+	.quick-button {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 16px;
+		background: white;
+		border: 2px solid transparent;
+		border-radius: 10px;
+		cursor: pointer;
+		transition: all 0.2s;
+		text-align: left;
+		font-family: inherit;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	}
+
+	.quick-button:hover {
+		border-color: var(--color-brand-coral);
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(255, 107, 157, 0.15);
+	}
+
+	.quick-icon {
+		font-size: 28px;
+		line-height: 1;
+	}
+
+	.quick-title {
+		font-weight: 600;
+		color: var(--color-text-primary);
+		margin-bottom: 4px;
+	}
+
+	.quick-desc {
+		font-size: 13px;
+		color: var(--color-text-secondary);
+		font-family: 'Monaco', 'Courier New', monospace;
+	}
+
+	.section-header {
+		margin-bottom: 16px;
+	}
+
+	.section-header h3 {
+		margin: 0 0 8px 0;
+	}
+
+	.hint {
+		font-size: 13px;
+		color: var(--color-text-secondary);
+		margin: 0;
+		font-style: italic;
 	}
 
 	.error-message {
@@ -436,6 +640,30 @@
 	.item-meta {
 		font-size: 13px;
 		color: var(--color-text-secondary);
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.item-arrow {
+		font-size: 20px;
+		color: var(--color-text-tertiary);
+		transition: transform 0.2s;
+	}
+
+	.item-card:hover .item-arrow {
+		transform: translateX(4px);
+		color: var(--color-primary);
+	}
+
+	.badge {
+		display: inline-block;
+		padding: 2px 8px;
+		border-radius: 10px;
+		font-size: 11px;
+		font-weight: 600;
+		background: rgba(255, 107, 157, 0.1);
+		color: var(--color-brand-coral);
 	}
 
 	.table-detail-header {
