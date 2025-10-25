@@ -41,14 +41,17 @@ export const GET: RequestHandler = async ({ url }) => {
 				}
 				query = `SHOW SCHEMAS IN DATABASE ${database}`;
 				results = await executeSnowflakeQuery(query);
+				console.log('Schemas raw results:', JSON.stringify(results.slice(0, 2), null, 2));
+				const schemas = results.map((row) => ({
+					name: row.name || row.NAME || 'Unknown',
+					database_name: row.database_name || row.DATABASE_NAME || database,
+					created_on: row.created_on || row.CREATED_ON,
+					owner: row.owner || row.OWNER || 'N/A'
+				}));
+				console.log('Schemas mapped:', JSON.stringify(schemas.slice(0, 2), null, 2));
 				return json({
 					success: true,
-					data: results.map((row) => ({
-						name: row.name || row.NAME,
-						database_name: row.database_name || row.DATABASE_NAME,
-						created_on: row.created_on || row.CREATED_ON,
-						owner: row.owner || row.OWNER
-					}))
+					data: schemas
 				});
 
 			case 'tables':
@@ -91,7 +94,11 @@ export const GET: RequestHandler = async ({ url }) => {
 
 				return json({
 					success: true,
-					data: tablesData.sort((a, b) => a.name.localeCompare(b.name))
+					data: tablesData.sort((a, b) => {
+						const nameA = a.name || '';
+						const nameB = b.name || '';
+						return nameA.localeCompare(nameB);
+					})
 				});
 
 			case 'columns':
