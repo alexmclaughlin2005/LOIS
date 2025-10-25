@@ -55,46 +55,53 @@ export const GET: RequestHandler = async ({ url }) => {
 				});
 
 			case 'tables':
-				// List tables and views in a schema using INFORMATION_SCHEMA
+				// List tables and views in a schema
 				if (!database || !schema) {
 					return json(
 						{ success: false, error: 'Database and schema parameters are required' },
 						{ status: 400 }
 					);
 				}
-				// Query INFORMATION_SCHEMA.TABLES
-				// Note: Snowflake SDK returns original column names (uppercase), not SQL aliases
-				query = `
-					SELECT
-						TABLE_NAME,
-						TABLE_SCHEMA,
-						TABLE_CATALOG,
-						TABLE_TYPE,
-						ROW_COUNT,
-						BYTES,
-						CREATED
-					FROM ${database}.INFORMATION_SCHEMA.TABLES
-					WHERE TABLE_SCHEMA = '${schema}'
-					ORDER BY TABLE_NAME
-				`;
-				console.log('Executing query for database:', database, 'schema:', schema);
-				results = await executeSnowflakeQuery(query);
-				console.log('Query returned', results.length, 'results');
-				if (results.length > 0) {
-					console.log('First result keys:', Object.keys(results[0]));
-					console.log('First result:', JSON.stringify(results[0], null, 2));
+
+				try {
+					// Get tables
+					const tablesQuery = `SHOW TABLES IN ${database}.${schema}`;
+					console.log('Executing tables query:', tablesQuery);
+					const tablesResults = await executeSnowflakeQuery(tablesQuery);
+					console.log('Tables results:', tablesResults.length);
+					if (tablesResults.length > 0) {
+						console.log('First table keys:', Object.keys(tablesResults[0]));
+						console.log('First table:', JSON.stringify(tablesResults[0], null, 2));
+					}
+
+					// Get views
+					const viewsQuery = `SHOW VIEWS IN ${database}.${schema}`;
+					console.log('Executing views query:', viewsQuery);
+					const viewsResults = await executeSnowflakeQuery(viewsQuery);
+					console.log('Views results:', viewsResults.length);
+					if (viewsResults.length > 0) {
+						console.log('First view keys:', Object.keys(viewsResults[0]));
+						console.log('First view:', JSON.stringify(viewsResults[0], null, 2));
+					}
+
+					// Combine results
+					results = [...tablesResults, ...viewsResults];
+					console.log('Total results:', results.length);
+				} catch (error: any) {
+					console.error('Error querying tables/views:', error);
+					throw error;
 				}
 
 				return json({
 					success: true,
 					data: results.map((row) => ({
-						name: row.TABLE_NAME || row.table_name || 'Unknown',
-						database_name: row.TABLE_CATALOG || row.table_catalog || database,
-						schema_name: row.TABLE_SCHEMA || row.table_schema || schema,
-						kind: (row.TABLE_TYPE || row.table_type || 'TABLE').replace('BASE TABLE', 'TABLE'),
-						rows: row.ROW_COUNT || row.row_count || 0,
-						bytes: row.BYTES || row.bytes || 0,
-						created_on: row.CREATED || row.created
+						name: row.name || row.NAME || 'Unknown',
+						database_name: row.database_name || row.DATABASE_NAME || database,
+						schema_name: row.schema_name || row.SCHEMA_NAME || schema,
+						kind: row.kind || row.KIND || row.type || row.TYPE || 'TABLE',
+						rows: row.rows || row.ROWS || row.row_count || row.ROW_COUNT || 0,
+						bytes: row.bytes || row.BYTES || 0,
+						created_on: row.created_on || row.CREATED_ON || row.created || row.CREATED
 					}))
 				});
 
