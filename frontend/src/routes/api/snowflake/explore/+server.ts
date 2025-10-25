@@ -69,8 +69,8 @@ export const GET: RequestHandler = async ({ url }) => {
 						TABLE_SCHEMA as schema_name,
 						TABLE_CATALOG as database_name,
 						TABLE_TYPE as kind,
-						ROW_COUNT as rows,
-						BYTES as bytes,
+						ROW_COUNT as row_count,
+						BYTES as byte_count,
 						CREATED as created_on
 					FROM ${database}.INFORMATION_SCHEMA.TABLES
 					WHERE TABLE_SCHEMA = '${schema}'
@@ -86,8 +86,8 @@ export const GET: RequestHandler = async ({ url }) => {
 						database_name: row.database_name || row.DATABASE_NAME || database,
 						schema_name: row.schema_name || row.SCHEMA_NAME || schema,
 						kind: (row.kind || row.KIND || 'TABLE').replace('BASE TABLE', 'TABLE'),
-						rows: row.rows || row.ROWS || 0,
-						bytes: row.bytes || row.BYTES || 0,
+						rows: row.row_count || row.ROW_COUNT || 0,
+						bytes: row.byte_count || row.BYTE_COUNT || 0,
 						created_on: row.created_on || row.CREATED_ON
 					}))
 				});
