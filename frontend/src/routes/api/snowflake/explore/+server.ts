@@ -161,15 +161,6 @@ export const GET: RequestHandler = async ({ url }) => {
 		console.error('Snowflake explore error:', error);
 		return json(
 			{
-
-				// Debug: Log ALL properties of first row
-				if (results.length > 0) {
-					console.log('=== ROW DEBUGGING ===' );
-					console.log('All keys:' , Object.keys(results[0]));
-					console.log('Full row:' , JSON.stringify(results[0]));
-					console.log('====================' );
-				}
-
 				success: false,
 				error: error.message || 'Failed to explore Snowflake data',
 				details: error.toString()
