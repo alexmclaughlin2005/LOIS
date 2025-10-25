@@ -76,7 +76,10 @@ export const GET: RequestHandler = async ({ url }) => {
 					WHERE TABLE_SCHEMA = '${schema}'
 					ORDER BY TABLE_NAME
 				`;
+				console.log('Executing query for database:', database, 'schema:', schema);
+				console.log('Query:', query);
 				results = await executeSnowflakeQuery(query);
+				console.log('Query returned', results.length, 'results');
 				console.log('Tables from INFORMATION_SCHEMA (first row):', JSON.stringify(results[0], null, 2));
 
 				return json({
