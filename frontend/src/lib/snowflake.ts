@@ -164,6 +164,11 @@ export async function executeSnowflakeQuery<T = any>(
 				} else {
 					// Convert rows to objects with column names
 					const columns = stmt.getColumns();
+				// Debug logging for SHOW commands
+				if (query.trim().toUpperCase().startsWith('SHOW')) {
+					console.log('SHOW command column names from Snowflake SDK:', columnNames);
+				}
+
 					const columnNames = columns.map(col => col.getName());
 
 					const results = (rows || []).map(row => {
