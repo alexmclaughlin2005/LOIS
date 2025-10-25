@@ -91,7 +91,7 @@
 	let sessionTitle: string = 'New Chat';
 
 	// Data source for queries
-	let dataSource: 'documents' | 'snowflake' = 'documents';
+	let dataSource: 'documents' | 'snowflake' | 'cortex' = 'documents';
 
 	// Test database connection on mount
 	onMount(async () => {
@@ -547,7 +547,7 @@
 			}
 		}
 
-		// Handle Snowflake queries
+		// Handle Snowflake queries (Claude-based NL-to-SQL)
 		if (dataSource === 'snowflake') {
 			try {
 				const response = await fetch('/api/snowflake/nl-query', {
@@ -592,6 +592,60 @@
 					{
 						role: 'assistant',
 						content: `Error querying Snowflake: ${error.message}`
+					}
+				];
+			}
+
+			isThinking = false;
+			inputValue = '';
+			return;
+		}
+
+		// Handle Cortex Analyst queries (Snowflake native semantic model)
+		if (dataSource === 'cortex') {
+			try {
+				const response = await fetch('/api/snowflake/cortex-analyst', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						question: userMessage,
+						conversationHistory: [] // TODO: Add conversation history for multi-turn
+					})
+				});
+
+				const result = await response.json();
+
+				if (result.success) {
+					// Add assistant message with SQL and results
+					messages = [
+						...messages,
+						{
+							role: 'assistant',
+							content: result.summary,
+							sqlQuery: result.sql,
+							hasStructuredData: result.results.length > 0,
+							structuredData: {
+								title: 'Cortex Analyst Results',
+								subtitle: `${result.rowCount} rows returned`,
+								data: result.results
+							}
+						}
+					];
+				} else {
+					messages = [
+						...messages,
+						{
+							role: 'assistant',
+							content: `I encountered an error with Cortex Analyst: ${result.error}${result.suggestion ? '\n\n' + result.suggestion : ''}`
+						}
+					];
+				}
+			} catch (error: any) {
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						content: `Error calling Cortex Analyst: ${error.message}`
 					}
 				];
 			}
@@ -1138,6 +1192,16 @@
 								<circle cx="6" cy="11" r="1" fill="currentColor"/>
 							</svg>
 							Structured Data
+						</button>
+						<button
+							class="toggle-button"
+							class:active={dataSource === 'cortex'}
+							on:click={() => dataSource = 'cortex'}
+						>
+							<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+								<path d="M7 2L8.5 4.5L11 5L9 7L9.5 9.5L7 8.5L4.5 9.5L5 7L3 5L5.5 4.5L7 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+							</svg>
+							Cortex
 						</button>
 					</div>
 				</div>

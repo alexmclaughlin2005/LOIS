@@ -8,7 +8,7 @@
 	let searchValue = '';
 	let showSavedPrompts = false;
 	let showRoutinesLibrary = false;
-	let dataSource: 'documents' | 'snowflake' = 'documents'; // Default to documents
+	let dataSource: 'documents' | 'snowflake' | 'cortex' = 'documents'; // Default to documents
 
 	// Get recent routines from DEFAULT_ROUTINES
 	const recentRoutines = DEFAULT_ROUTINES.slice(0, 3);
@@ -183,6 +183,16 @@
 										<circle cx="6" cy="11" r="1" fill="currentColor"/>
 									</svg>
 									Structured Data
+								</button>
+								<button
+									class="toggle-button"
+									class:active={dataSource === 'cortex'}
+									on:click={() => dataSource = 'cortex'}
+								>
+									<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+										<path d="M7 2L8.5 4.5L11 5L9 7L9.5 9.5L7 8.5L4.5 9.5L5 7L3 5L5.5 4.5L7 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+									</svg>
+									Cortex
 								</button>
 							</div>
 							<button class="input-button" on:click={handleOpenSavedPrompts}>
