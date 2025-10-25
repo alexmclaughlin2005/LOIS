@@ -181,11 +181,6 @@ export async function executeSnowflakeQuery<T = any>(
 					}
 						columnNames.forEach((name, index) => {
 							obj[name] = row[index];
-					// Check if row is already an object
-					if (rowIndex === 0 && query.trim().toUpperCase().startsWith('SHOW')) {
-						console.log('Row is array?', Array.isArray(row));
-						console.log('Row keys if object:', typeof row === 'object' ? Object.keys(row) : 'N/A');
-					}
 						});
 						return obj as T;
 					});
