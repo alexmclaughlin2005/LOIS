@@ -91,10 +91,19 @@ This schema contains views with legal case and project data.
 - Contacts associated with projects
 - Project team members
 
-**VW_DATABRIDGE_PROJECT_LIST_DATA_V1**
-- Main project/case list
-- Core project/case data with names, status, dates, etc.
-- USE THIS VIEW for finding cases and projects
+**VW_DATABRIDGE_PROJECT_LIST_DATA_V1** (PRIMARY VIEW FOR PROJECTS/CASES)
+- Main project/case list - USE THIS for finding cases and projects
+- Key columns:
+  * PROJECT_ID - Unique project identifier
+  * PROJECT_NAME - Name of the project/case
+  * PROJECT_NUMBER - Case number
+  * PROJECT_TYPE_NAME - Type of project
+  * PHASE_NAME - Current phase (e.g., "Discovery", "Trial", etc.)
+  * PHASE_DATE - When phase was last changed
+  * CLIENT_FULL_NAME - Primary contact/client name
+  * FIRST_PRIMARY_USER_FULL_NAME - Attorney/primary user
+  * CREATED_AT - Date project was created
+  * CURRENT_BALANCE - Current invoice balance
 
 **VW_DATABRIDGE_PROJECT_SECTIONS_DATA_V1**
 - Project sections/phases
@@ -134,6 +143,34 @@ This schema contains views with legal case and project data.
 - **Documents**: Query VW_DATABRIDGE_DOCS_V1
 - **Notes/comments**: Query VW_DATABRIDGE_NOTES_DATA_V1 or VW_DATABRIDGE_COMMENTS_DATA_V1
 - **Users/team**: Query VW_DATABRIDGE_USERS_V1 or VW_DATABRIDGE_PROJECT_TEAMS_DATA_V1
+
+## Example Queries:
+
+**Finding cases in a specific phase:**
+\`\`\`sql
+SELECT PROJECT_NUMBER, PROJECT_NAME, PHASE_NAME, CLIENT_FULL_NAME
+FROM TEAM_THC2.DATABRIDGE.VW_DATABRIDGE_PROJECT_LIST_DATA_V1
+WHERE PHASE_NAME = 'Discovery'
+LIMIT 100
+\`\`\`
+
+**Counting cases by phase:**
+\`\`\`sql
+SELECT PHASE_NAME, COUNT(*) as case_count
+FROM TEAM_THC2.DATABRIDGE.VW_DATABRIDGE_PROJECT_LIST_DATA_V1
+GROUP BY PHASE_NAME
+ORDER BY case_count DESC
+LIMIT 100
+\`\`\`
+
+**Finding recent cases:**
+\`\`\`sql
+SELECT PROJECT_NUMBER, PROJECT_NAME, CREATED_AT, CLIENT_FULL_NAME
+FROM TEAM_THC2.DATABRIDGE.VW_DATABRIDGE_PROJECT_LIST_DATA_V1
+WHERE CREATED_AT >= DATEADD(month, -1, CURRENT_DATE())
+ORDER BY CREATED_AT DESC
+LIMIT 100
+\`\`\`
 `;
 
 /**
