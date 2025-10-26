@@ -6,7 +6,7 @@
  */
 
 export const CORTEX_SEMANTIC_MODEL = `
-name: "LOIS Legal Case Management Data Model"
+name: "LOIS Legal Case Management Data Model v2"
 description: |
   Legal case and project management data for THC2 law firm.
 
