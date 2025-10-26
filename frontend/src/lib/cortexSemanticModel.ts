@@ -132,7 +132,7 @@ tables:
         unique: true
 
   - name: VW_DATABRIDGE_INVOICE_DATA_V1
-    description: "Invoice records and billing information"
+    description: "Invoice records and billing information. Links to projects via PROJECT_ID."
     base_table:
       database: TEAM_THC2
       schema: DATABRIDGE
@@ -140,11 +140,90 @@ tables:
 
     dimensions:
       - name: invoice_id
-        synonyms: ["invoice number", "bill number"]
+        synonyms: ["invoice number", "bill number", "id"]
         description: "Unique invoice identifier"
-        expr: INVOICE_ID
+        expr: ID
         data_type: NUMBER
         unique: true
+
+      - name: project_id
+        synonyms: ["case id", "project identifier"]
+        description: "Links invoice to a specific case/project"
+        expr: PROJECT_ID
+        data_type: NUMBER
+
+      - name: invoice_number
+        synonyms: ["bill number", "invoice num"]
+        description: "Invoice number"
+        expr: INVOICE_NUMBER
+        data_type: NUMBER
+
+      - name: description
+        synonyms: ["invoice description", "bill description", "notes"]
+        description: "Description or notes on the invoice"
+        expr: DESCRIPTION
+        data_type: TEXT
+
+      - name: invoice_date
+        synonyms: ["date", "bill date", "invoiced date"]
+        description: "Date the invoice was created"
+        expr: INVOICE_DATE
+        data_type: DATE
+
+      - name: due_date
+        synonyms: ["payment due date", "due"]
+        description: "Date payment is due"
+        expr: DUE_DATE
+        data_type: DATE
+
+      - name: sent_date
+        synonyms: ["date sent", "mailed date"]
+        description: "Date the invoice was sent to client"
+        expr: SENT_DATE
+        data_type: DATE
+
+      - name: finalized_date
+        synonyms: ["date finalized", "completed date"]
+        description: "Date the invoice was finalized"
+        expr: FINALIZED_DATE
+        data_type: DATE
+
+      - name: voided_date
+        synonyms: ["date voided", "cancelled date"]
+        description: "Date the invoice was voided (null if not voided)"
+        expr: VOIDED_DATE
+        data_type: DATE
+
+      - name: total
+        synonyms: ["invoice total", "amount", "bill amount", "invoice amount"]
+        description: "Total invoice amount"
+        expr: TOTAL
+        data_type: NUMBER
+
+      - name: outstanding_balance
+        synonyms: ["balance", "amount due", "unpaid", "owed", "remaining balance"]
+        description: "Outstanding balance still owed on this invoice"
+        expr: OUTSTANDING_BALANCE
+        data_type: NUMBER
+
+    measures:
+      - name: total_invoices
+        synonyms: ["invoice count", "number of invoices", "how many invoices"]
+        description: "Total number of invoices"
+        expr: COUNT(*)
+        data_type: NUMBER
+
+      - name: total_invoice_amount
+        synonyms: ["sum of invoices", "total billed", "total invoiced"]
+        description: "Sum of all invoice totals"
+        expr: SUM(TOTAL)
+        data_type: NUMBER
+
+      - name: total_outstanding
+        synonyms: ["total unpaid", "total balance due", "sum of outstanding"]
+        description: "Sum of all outstanding balances"
+        expr: SUM(OUTSTANDING_BALANCE)
+        data_type: NUMBER
 
   - name: VW_DATABRIDGE_DOCS_V1
     description: "Document metadata and references for cases. Links to projects via PROJECT_ID."

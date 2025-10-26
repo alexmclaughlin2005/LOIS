@@ -240,9 +240,20 @@ function extractSummary(response: CortexAnalystResponse): string {
 /**
  * Apply ORG_ID filter to generated SQL query
  * Intelligently adds WHERE clause or extends existing WHERE clause
+ * Only applies if the query references tables that have ORG_ID
  */
 function applyOrgFilter(sql: string, orgId: string): string {
 	const sqlUpper = sql.toUpperCase();
+
+	// Check if query references tables that have ORG_ID
+	// All VW_DATABRIDGE tables have ORG_ID
+	const hasDatabridgeTables = sqlUpper.includes('VW_DATABRIDGE');
+
+	// Skip filtering if no databridge tables are referenced
+	if (!hasDatabridgeTables) {
+		console.log('Skipping ORG_ID filter - no VW_DATABRIDGE tables detected');
+		return sql;
+	}
 
 	// Check if query already has a WHERE clause
 	const hasWhere = sqlUpper.includes('WHERE');
@@ -250,7 +261,11 @@ function applyOrgFilter(sql: string, orgId: string): string {
 	const hasOrderBy = sqlUpper.includes('ORDER BY');
 	const hasLimit = sqlUpper.includes('LIMIT');
 
-	const orgFilter = `ORG_ID = '${orgId}'`;
+	// Use table alias if present, otherwise just ORG_ID
+	// Look for common table aliases in FROM/JOIN clauses
+	const tableAliasMatch = sql.match(/VW_DATABRIDGE_\w+\s+(?:AS\s+)?(\w+)/i);
+	const tableAlias = tableAliasMatch ? tableAliasMatch[1] + '.' : '';
+	const orgFilter = `${tableAlias}ORG_ID = '${orgId}'`;
 
 	if (!hasWhere) {
 		// No WHERE clause - add one before GROUP BY, ORDER BY, or LIMIT
