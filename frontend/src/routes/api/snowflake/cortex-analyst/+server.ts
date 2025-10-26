@@ -237,21 +237,57 @@ function extractSummary(response: CortexAnalystResponse): string {
 	return textParts.join('\n\n');
 }
 
+/**
+ * Apply ORG_ID filter to generated SQL query
+ * Intelligently adds WHERE clause or extends existing WHERE clause
+ */
+function applyOrgFilter(sql: string, orgId: string): string {
+	const sqlUpper = sql.toUpperCase();
+
+	// Check if query already has a WHERE clause
+	const hasWhere = sqlUpper.includes('WHERE');
+	const hasGroupBy = sqlUpper.includes('GROUP BY');
+	const hasOrderBy = sqlUpper.includes('ORDER BY');
+	const hasLimit = sqlUpper.includes('LIMIT');
+
+	const orgFilter = `ORG_ID = '${orgId}'`;
+
+	if (!hasWhere) {
+		// No WHERE clause - add one before GROUP BY, ORDER BY, or LIMIT
+		if (hasGroupBy) {
+			return sql.replace(/GROUP BY/i, `WHERE ${orgFilter}\nGROUP BY`);
+		} else if (hasOrderBy) {
+			return sql.replace(/ORDER BY/i, `WHERE ${orgFilter}\nORDER BY`);
+		} else if (hasLimit) {
+			return sql.replace(/LIMIT/i, `WHERE ${orgFilter}\nLIMIT`);
+		} else {
+			// No clauses - add at the end
+			return sql.trim() + `\nWHERE ${orgFilter}`;
+		}
+	} else {
+		// Has WHERE clause - extend it with AND
+		return sql.replace(/WHERE/i, `WHERE ${orgFilter} AND `);
+	}
+}
+
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		const { question, conversationHistory } = await request.json();
+		const { question, conversationHistory, orgId } = await request.json();
 
 		if (!question) {
 			return json({ success: false, error: 'Question is required' }, { status: 400 });
 		}
 
 		console.log('Cortex Analyst query:', question);
+		if (orgId) {
+			console.log('Filtering by ORG_ID:', orgId);
+		}
 
 		// Step 1: Call Cortex Analyst to generate SQL
 		const cortexResponse = await callCortexAnalyst(question, conversationHistory);
 
 		// Step 2: Extract SQL and summary from response
-		const sqlQuery = extractSQL(cortexResponse);
+		let sqlQuery = extractSQL(cortexResponse);
 		const cortexSummary = extractSummary(cortexResponse);
 
 		if (!sqlQuery) {
@@ -262,7 +298,13 @@ export const POST: RequestHandler = async ({ request }) => {
 			});
 		}
 
-		console.log('Cortex generated SQL:', sqlQuery);
+		console.log('Cortex generated SQL (before org filter):', sqlQuery);
+
+		// Step 2.5: Apply ORG_ID filter if provided
+		if (orgId) {
+			sqlQuery = applyOrgFilter(sqlQuery, orgId);
+			console.log('Cortex generated SQL (after org filter):', sqlQuery);
+		}
 
 		// Step 3: Execute the SQL query
 		const results = await executeSnowflakeQuery(sqlQuery);

@@ -17,11 +17,49 @@
 	let loading = true;
 	let selectedSessions = new Set<string>();
 	let includeArchived = false;
-	let activeTab: 'chats' | 'snowflake' = 'chats';
+	let activeTab: 'chats' | 'snowflake' | 'settings' = 'chats';
+
+	// Organization settings
+	let organizations: { ORG_ID: string; ORG_NAME: string }[] = [];
+	let selectedOrgId: string | null = null;
+	let loadingOrgs = false;
 
 	onMount(async () => {
 		await loadSessions();
+		await loadOrganizations();
+		loadSelectedOrg();
 	});
+
+	async function loadOrganizations() {
+		loadingOrgs = true;
+		try {
+			const response = await fetch('/api/snowflake/organizations');
+			const data = await response.json();
+			if (data.success) {
+				organizations = data.organizations;
+			}
+		} catch (error) {
+			console.error('Error loading organizations:', error);
+		} finally {
+			loadingOrgs = false;
+		}
+	}
+
+	function loadSelectedOrg() {
+		const saved = localStorage.getItem('selectedOrgId');
+		if (saved) {
+			selectedOrgId = saved;
+		}
+	}
+
+	function selectOrg(orgId: string | null) {
+		selectedOrgId = orgId;
+		if (orgId) {
+			localStorage.setItem('selectedOrgId', orgId);
+		} else {
+			localStorage.removeItem('selectedOrgId');
+		}
+	}
 
 	async function loadSessions() {
 		try {
@@ -154,6 +192,13 @@
 				>
 					Snowflake Data
 				</button>
+				<button
+					class="tab"
+					class:active={activeTab === 'settings'}
+					on:click={() => activeTab = 'settings'}
+				>
+					Settings
+				</button>
 			</div>
 
 			{#if activeTab === 'chats'}
@@ -261,6 +306,72 @@
 
 			{:else if activeTab === 'snowflake'}
 				<SnowflakeExplorer />
+
+			{:else if activeTab === 'settings'}
+				<div class="settings-section">
+					<div class="settings-card">
+						<h3>Organization Filter</h3>
+						<p class="settings-description">
+							Select an organization to filter all queries by ORG_ID. This setting will apply to Cortex Analyst queries and structured data queries.
+						</p>
+
+						{#if loadingOrgs}
+							<div class="loading-state">
+								<div class="spinner"></div>
+								<p>Loading organizations...</p>
+							</div>
+						{:else if organizations.length === 0}
+							<div class="empty-state">
+								<p>No organizations found</p>
+							</div>
+						{:else}
+							<div class="org-selector">
+								<label class="org-option">
+									<input
+										type="radio"
+										name="organization"
+										checked={selectedOrgId === null}
+										on:change={() => selectOrg(null)}
+									/>
+									<div class="org-info">
+										<div class="org-name">All Organizations</div>
+										<div class="org-desc">No filtering applied</div>
+									</div>
+								</label>
+
+								{#each organizations as org}
+									<label class="org-option">
+										<input
+											type="radio"
+											name="organization"
+											value={org.ORG_ID}
+											checked={selectedOrgId === org.ORG_ID}
+											on:change={() => selectOrg(org.ORG_ID)}
+										/>
+										<div class="org-info">
+											<div class="org-name">{org.ORG_NAME}</div>
+											<div class="org-desc">ID: {org.ORG_ID}</div>
+										</div>
+									</label>
+								{/each}
+							</div>
+
+							{#if selectedOrgId}
+								<div class="alert alert-info">
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+										<path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2"/>
+										<path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+									</svg>
+									<div>
+										<strong>Active Filter:</strong> All queries are now filtered to organization
+										<strong>{organizations.find(o => o.ORG_ID === selectedOrgId)?.ORG_NAME}</strong>
+										(ID: {selectedOrgId})
+									</div>
+								</div>
+							{/if}
+						{/if}
+					</div>
+				</div>
 			{/if}
 		</div>
 	</main>
@@ -631,5 +742,102 @@
 	.tab.active {
 		color: var(--color-brand-coral);
 		border-bottom-color: var(--color-brand-coral);
+	}
+
+	.settings-section {
+		margin-top: 24px;
+	}
+
+	.settings-card {
+		background: white;
+		border-radius: 12px;
+		padding: 24px;
+		border: 1px solid var(--color-border);
+	}
+
+	.settings-card h3 {
+		margin: 0 0 8px 0;
+		font-size: 20px;
+		font-weight: 600;
+		color: var(--color-text-primary);
+	}
+
+	.settings-description {
+		margin: 0 0 24px 0;
+		font-size: 14px;
+		color: var(--color-text-secondary);
+		line-height: 1.5;
+	}
+
+	.org-selector {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin-bottom: 24px;
+	}
+
+	.org-option {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 16px;
+		border: 2px solid var(--color-border);
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.org-option:hover {
+		border-color: var(--color-brand-coral);
+		background: rgba(255, 107, 157, 0.02);
+	}
+
+	.org-option input[type="radio"] {
+		cursor: pointer;
+		width: 18px;
+		height: 18px;
+		flex-shrink: 0;
+	}
+
+	.org-option input[type="radio"]:checked + .org-info {
+		color: var(--color-brand-coral);
+	}
+
+	.org-info {
+		flex: 1;
+	}
+
+	.org-name {
+		font-weight: 600;
+		font-size: 15px;
+		color: var(--color-text-primary);
+		margin-bottom: 4px;
+	}
+
+	.org-desc {
+		font-size: 13px;
+		color: var(--color-text-secondary);
+		font-family: 'Monaco', 'Courier New', monospace;
+	}
+
+	.alert {
+		display: flex;
+		align-items: flex-start;
+		gap: 12px;
+		padding: 16px;
+		border-radius: 8px;
+		font-size: 14px;
+		line-height: 1.5;
+	}
+
+	.alert-info {
+		background: rgba(13, 110, 253, 0.1);
+		border: 1px solid rgba(13, 110, 253, 0.2);
+		color: #084298;
+	}
+
+	.alert svg {
+		flex-shrink: 0;
+		margin-top: 2px;
 	}
 </style>

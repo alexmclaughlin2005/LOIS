@@ -604,12 +604,16 @@
 		// Handle Cortex Analyst queries (Snowflake native semantic model)
 		if (dataSource === 'cortex') {
 			try {
+				// Get selected org_id from localStorage (set in admin settings)
+				const selectedOrgId = localStorage.getItem('selectedOrgId');
+
 				const response = await fetch('/api/snowflake/cortex-analyst', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
 						question: userMessage,
-						conversationHistory: [] // TODO: Add conversation history for multi-turn
+						conversationHistory: [], // TODO: Add conversation history for multi-turn
+						orgId: selectedOrgId // Pass the selected org_id for filtering
 					})
 				});
 
