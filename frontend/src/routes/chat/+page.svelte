@@ -660,7 +660,15 @@
 		}
 
 		try {
-			// Use query router to classify and handle the query
+			// Skip classification/routing for Snowflake and Cortex modes
+			// Those have their own dedicated handlers above
+			if (dataSource !== 'documents') {
+				console.log(`⚠️  Data source is '${dataSource}' but reached document router - this shouldn't happen!`);
+				isThinking = false;
+				return;
+			}
+
+			// Use query router to classify and handle the query (documents mode only)
 			console.log('🔍 Routing query:', userMessage);
 
 			// Build context from previous query
