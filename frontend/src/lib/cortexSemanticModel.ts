@@ -24,6 +24,12 @@ description: |
   Common Project Types:
   Personal Injury, Family Law, Criminal Defense, Civil Litigation, etc.
 
+  Billing Status Understanding:
+  - "Billed" items: On invoices where FINALIZED_DATE IS NOT NULL
+  - "Unbilled" items: Either (1) not on any invoice yet, OR (2) on invoices
+    where FINALIZED_DATE IS NULL (draft/pending/approved status)
+  - Use FINALIZED_DATE to determine if an invoice has been officially sent
+
   Primary workflow: Projects → People → Invoices → Transactions → Documents
 
 tables:
@@ -451,5 +457,38 @@ verified_queries:
       FROM TEAM_THC2.DATABRIDGE.VW_DATABRIDGE_PROJECT_LIST_DATA_V1
       WHERE PHASE_NAME = 'Litigation'
       ORDER BY PHASE_DATE DESC
+      LIMIT 100
+
+  - name: cases_with_unbilled_invoices
+    question: "Which cases have unbilled time or expenses?"
+    sql: |
+      SELECT
+        p.PROJECT_NUMBER,
+        p.PROJECT_NAME,
+        p.CLIENT_FULL_NAME,
+        COUNT(i.ID) as unbilled_invoice_count,
+        SUM(i.TOTAL) as unbilled_amount
+      FROM TEAM_THC2.DATABRIDGE.VW_DATABRIDGE_PROJECT_LIST_DATA_V1 p
+      INNER JOIN TEAM_THC2.DATABRIDGE.VW_DATABRIDGE_INVOICE_DATA_V1 i
+        ON p.PROJECT_ID = i.PROJECT_ID
+      WHERE i.FINALIZED_DATE IS NULL
+        AND i.VOIDED_DATE IS NULL
+      GROUP BY p.PROJECT_NUMBER, p.PROJECT_NAME, p.CLIENT_FULL_NAME
+      ORDER BY unbilled_amount DESC
+      LIMIT 100
+
+  - name: finalized_vs_draft_invoices
+    question: "Show me the difference between finalized and draft invoices"
+    sql: |
+      SELECT
+        CASE
+          WHEN FINALIZED_DATE IS NOT NULL THEN 'Finalized (Billed)'
+          WHEN FINALIZED_DATE IS NULL THEN 'Draft (Unbilled)'
+        END as invoice_status,
+        COUNT(*) as invoice_count,
+        SUM(TOTAL) as total_amount
+      FROM TEAM_THC2.DATABRIDGE.VW_DATABRIDGE_INVOICE_DATA_V1
+      WHERE VOIDED_DATE IS NULL
+      GROUP BY invoice_status
       LIMIT 100
 `;
