@@ -22,11 +22,23 @@
 	"/api/generate-response": [
 		"src/routes/api/generate-response/+server.ts"
 	],
+	"/api/snowflake/cortex-analyst": [
+		"src/routes/api/snowflake/cortex-analyst/+server.ts"
+	],
 	"/api/snowflake/explore": [
 		"src/routes/api/snowflake/explore/+server.ts"
 	],
+	"/api/snowflake/nl-query": [
+		"src/routes/api/snowflake/nl-query/+server.ts"
+	],
+	"/api/snowflake/organizations": [
+		"src/routes/api/snowflake/organizations/+server.ts"
+	],
 	"/api/snowflake/query": [
 		"src/routes/api/snowflake/query/+server.ts"
+	],
+	"/api/snowflake/schema-map": [
+		"src/routes/api/snowflake/schema-map/+server.ts"
 	],
 	"/api/snowflake/test": [
 		"src/routes/api/snowflake/test/+server.ts"
