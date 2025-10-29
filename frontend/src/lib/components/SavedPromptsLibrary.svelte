@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { SavedPrompt } from '$lib/types/prompt';
 	import { PROMPT_CATEGORIES, DEFAULT_PROMPTS } from '$lib/types/prompt';
 	import PromptCreation from './PromptCreation.svelte';
@@ -6,12 +7,47 @@
 	export let onUsePrompt: (promptText: string) => void;
 	export let onClose: () => void;
 
-	let prompts: SavedPrompt[] = [...DEFAULT_PROMPTS];
+	const STORAGE_KEY = 'lois_saved_prompts';
+
+	// Load prompts from localStorage or use defaults
+	let prompts: SavedPrompt[] = [];
 	let showCreation = false;
 	let editingPrompt: SavedPrompt | null = null;
 	let selectedCategory: SavedPrompt['category'] | 'all' = 'all';
 	let searchQuery = '';
 	let showFavoritesOnly = false;
+
+	// Load prompts from localStorage on mount
+	onMount(() => {
+		loadPromptsFromStorage();
+	});
+
+	function loadPromptsFromStorage() {
+		try {
+			const stored = localStorage.getItem(STORAGE_KEY);
+			if (stored) {
+				prompts = JSON.parse(stored);
+				console.log('✅ Loaded', prompts.length, 'saved prompts from localStorage');
+			} else {
+				// First time - use defaults
+				prompts = [...DEFAULT_PROMPTS];
+				savePromptsToStorage();
+				console.log('✅ Initialized with', prompts.length, 'default prompts');
+			}
+		} catch (error) {
+			console.error('❌ Error loading prompts from localStorage:', error);
+			prompts = [...DEFAULT_PROMPTS];
+		}
+	}
+
+	function savePromptsToStorage() {
+		try {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(prompts));
+			console.log('💾 Saved', prompts.length, 'prompts to localStorage');
+		} catch (error) {
+			console.error('❌ Error saving prompts to localStorage:', error);
+		}
+	}
 
 	// Filter prompts
 	$: filteredPrompts = prompts.filter(prompt => {
@@ -36,6 +72,7 @@
 		if (index !== -1) {
 			prompts[index].usageCount++;
 			prompts = [...prompts];
+			savePromptsToStorage(); // Persist usage count
 		}
 
 		// If prompt has placeholders, show it for the user to fill in
@@ -75,6 +112,7 @@
 			];
 		}
 
+		savePromptsToStorage(); // Persist changes
 		showCreation = false;
 		editingPrompt = null;
 	}
@@ -87,6 +125,7 @@
 	function handleDeletePrompt(prompt: SavedPrompt) {
 		if (confirm(`Are you sure you want to delete "${prompt.title}"?`)) {
 			prompts = prompts.filter(p => p.id !== prompt.id);
+			savePromptsToStorage(); // Persist deletion
 		}
 	}
 
@@ -95,6 +134,7 @@
 		if (index !== -1) {
 			prompts[index].isFavorite = !prompts[index].isFavorite;
 			prompts = [...prompts];
+			savePromptsToStorage(); // Persist favorite toggle
 		}
 	}
 
