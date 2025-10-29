@@ -474,6 +474,7 @@
 		flex: 1;
 		overflow-y: auto;
 		background: var(--color-bg-secondary);
+		position: relative; /* Needed for absolute positioned side panels */
 	}
 
 	.content-wrapper {

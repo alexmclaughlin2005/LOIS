@@ -289,13 +289,17 @@
 
 <style>
 	.library-overlay {
-		/* Side panel - no overlay background */
+		/* Side panel - positioned on right side */
+		position: absolute;
+		top: 0;
+		right: 0;
 		width: 480px;
 		min-width: 480px;
 		max-width: 480px;
 		height: 100%;
 		display: flex;
 		flex-direction: column;
+		z-index: 100;
 	}
 
 	.library-container {

@@ -295,6 +295,9 @@
 
 <style>
 	.routines-library {
+		position: absolute;
+		top: 0;
+		right: 0;
 		width: 480px;
 		min-width: 480px;
 		max-width: 480px;
@@ -305,6 +308,7 @@
 		flex-direction: column;
 		font-family: 'Helvetica Now Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 		overflow: hidden;
+		z-index: 100;
 	}
 
 	.library-header {
