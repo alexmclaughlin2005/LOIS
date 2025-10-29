@@ -32,16 +32,27 @@ Need to verify and improve the user experience:
 4. **Placeholder UX**: Need to verify placeholder filling works smoothly
 5. **Mobile Responsiveness**: Check if library works well on mobile devices
 
-### Issue #1A: Positioning Bug (FIXED)
+### Issue #1A: Positioning Bug (✅ FIXED)
 
-**Problem Found**: The `SavedPromptsLibrary` component was rendered AFTER the closing `</style>` tag and OUTSIDE the `.app-container` div. Since `.app-container` has `overflow: hidden`, the side panel (480px wide) was being clipped and hidden.
+**Problem Found**:
+1. Initial issue: Components were rendered OUTSIDE `.app-container` div (after `</style>`)
+2. Second issue: Components were positioned BEFORE sidebar, appearing on LEFT instead of RIGHT
 
-**Solution Applied**: Moved the `{#if showSavedPrompts}` block INSIDE the `.app-container` div, right before the sidebar. This ensures the side panel renders correctly within the layout.
+**Solution Applied**:
+- First fix: Moved components INSIDE `.app-container`
+- Second fix: Moved components INSIDE `<main>` element at the end (matching chat page)
+
+This positions them correctly: [Sidebar LEFT] → [Main Content] → [Side Panels RIGHT]
 
 **Files Changed**:
-- `frontend/src/routes/+page.svelte` - Lines 72-75 (added), removed duplicate at line 690
+- `frontend/src/routes/+page.svelte`:
+  - SavedPromptsLibrary: lines 257-260 (inside main)
+  - RoutinesLibrary: lines 262-268 (inside main)
+  - Removed duplicates that were outside container
 
-**Commit**: Pending
+**Commits**:
+- `6c0844f` - Initial positioning fix
+- `ece55a3` - Corrected to RIGHT side (final fix)
 
 ### Files to Review
 - `frontend/src/lib/components/SavedPromptsLibrary.svelte`
@@ -416,10 +427,13 @@ try {
 
 ### 2025-10-29 - Session 1
 - ✅ Created comprehensive troubleshooting document
-- ✅ Identified Issue #1A: Positioning bug in SavedPromptsLibrary
-- ✅ Fixed: Moved component inside .app-container for proper rendering
-- ✅ Started dev server for testing (http://localhost:5175/)
-- ⏳ Next: Test fix and implement persistence
+- ✅ Identified Issue #1A: Positioning bug in SavedPromptsLibrary & RoutinesLibrary
+- ✅ Fixed attempt 1: Moved components inside .app-container
+- ✅ Fixed attempt 2: Moved components inside <main> to appear on RIGHT side
+- ✅ Verified: Both side panels now correctly positioned on right side
+- ✅ Commits: 6c0844f (initial), ece55a3 (final fix)
+- ✅ Dev server running: http://localhost:5175/
+- ⏳ Next: User testing, then implement persistence
 
 ---
 
