@@ -240,6 +240,7 @@ function extractSummary(response: CortexAnalystResponse): string {
 /**
  * Apply ORG_ID filter to generated SQL query
  * Intelligently adds WHERE clause or extends existing WHERE clause
+ * Handles CTEs (WITH clauses) properly by filtering in the CTE definition
  * Only applies if the query references tables that have ORG_ID
  */
 function applyOrgFilter(sql: string, orgId: string): string {
@@ -255,17 +256,57 @@ function applyOrgFilter(sql: string, orgId: string): string {
 		return sql;
 	}
 
-	// Check if query already has a WHERE clause
+	// Check if this is a CTE (Common Table Expression) query
+	const hasCTE = sqlUpper.includes('WITH ');
+	
+	if (hasCTE) {
+		// For CTE queries, add ORG_ID filter to the base table in the CTE definition
+		// Pattern: FROM team_thc2.databridge.vw_databridge_xxx
+		// We need to add WHERE after the FROM clause but before the closing paren of the CTE
+		
+		// Find the FROM clause in the CTE
+		const cteFromMatch = sql.match(/(FROM\s+team_thc2\.databridge\.vw_databridge_\w+)/i);
+		if (cteFromMatch) {
+			const fromClause = cteFromMatch[1];
+			// Add WHERE clause after the FROM, before the next line/paren
+			const replacement = `${fromClause}\n  WHERE ORG_ID = ${orgId}`;
+			return sql.replace(cteFromMatch[1], replacement);
+		}
+	}
+
+	// For non-CTE queries, use the original logic
 	const hasWhere = sqlUpper.includes('WHERE');
 	const hasGroupBy = sqlUpper.includes('GROUP BY');
 	const hasOrderBy = sqlUpper.includes('ORDER BY');
 	const hasLimit = sqlUpper.includes('LIMIT');
+	const hasJoin = sqlUpper.includes('JOIN');
 
-	// Use table alias if present, otherwise just ORG_ID
-	// Look for common table aliases in FROM/JOIN clauses
-	const tableAliasMatch = sql.match(/VW_DATABRIDGE_\w+\s+(?:AS\s+)?(\w+)/i);
-	const tableAlias = tableAliasMatch ? tableAliasMatch[1] + '.' : '';
-	const orgFilter = `${tableAlias}ORG_ID = '${orgId}'`;
+	// Construct the ORG_ID filter
+	// If there's a JOIN, we need to filter ALL tables that have ORG_ID
+	let orgFilter = `ORG_ID = ${orgId}`;
+	
+	if (hasJoin) {
+		// Find all table aliases in FROM and JOIN clauses
+		const tableMatches = sql.match(/(?:FROM|JOIN)\s+(?:TEAM_THC2\.DATABRIDGE\.)?VW_DATABRIDGE_\w+\s+(?:AS\s+)?(\w+)/gi);
+		if (tableMatches && tableMatches.length > 0) {
+			const aliases: string[] = [];
+			tableMatches.forEach(match => {
+				const aliasMatch = match.match(/(?:FROM|JOIN)\s+(?:TEAM_THC2\.DATABRIDGE\.)?VW_DATABRIDGE_\w+\s+(?:AS\s+)?(\w+)/i);
+				if (aliasMatch && aliasMatch[1]) {
+					aliases.push(aliasMatch[1]);
+				}
+			});
+			
+			// Filter all tables by ORG_ID
+			if (aliases.length > 1) {
+				// Multiple tables - filter each one
+				orgFilter = aliases.map(alias => `${alias}.ORG_ID = ${orgId}`).join(' AND ');
+			} else if (aliases.length === 1) {
+				// Single table with alias
+				orgFilter = `${aliases[0]}.ORG_ID = ${orgId}`;
+			}
+		}
+	}
 
 	if (!hasWhere) {
 		// No WHERE clause - add one before GROUP BY, ORDER BY, or LIMIT
@@ -313,12 +354,14 @@ export const POST: RequestHandler = async ({ request }) => {
 			});
 		}
 
-		console.log('Cortex generated SQL (before org filter):', sqlQuery);
+		console.log('Cortex generated SQL (before org filter):');
+		console.log(sqlQuery);
 
 		// Step 2.5: Apply ORG_ID filter if provided
 		if (orgId) {
 			sqlQuery = applyOrgFilter(sqlQuery, orgId);
-			console.log('Cortex generated SQL (after org filter):', sqlQuery);
+			console.log('Cortex generated SQL (after org filter):');
+			console.log(sqlQuery);
 		}
 
 		// Step 3: Execute the SQL query

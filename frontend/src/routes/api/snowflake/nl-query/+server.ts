@@ -9,15 +9,121 @@ const anthropic = new Anthropic({
 });
 
 /**
+ * Apply ORG_ID filter to generated SQL query
+ * Intelligently adds WHERE clause or extends existing WHERE clause
+ * Handles CTEs (WITH clauses) properly by filtering in the CTE definition
+ * Only applies if the query references tables that have ORG_ID
+ */
+function applyOrgFilter(sql: string, orgId: string): string {
+	const sqlUpper = sql.toUpperCase();
+
+	// Check if query references tables that have ORG_ID
+	// All VW_DATABRIDGE tables have ORG_ID
+	const hasDatabridgeTables = sqlUpper.includes('VW_DATABRIDGE');
+
+	// Skip filtering if no databridge tables are referenced
+	if (!hasDatabridgeTables) {
+		console.log('Skipping ORG_ID filter - no VW_DATABRIDGE tables detected');
+		return sql;
+	}
+
+	// Check if this is a CTE (Common Table Expression) query
+	const hasCTE = sqlUpper.includes('WITH ');
+	
+	if (hasCTE) {
+		// For CTE queries, add ORG_ID filter to the base table in the CTE definition
+		// Pattern: FROM team_thc2.databridge.vw_databridge_xxx
+		// We need to add WHERE after the FROM clause but before the closing paren of the CTE
+		
+		// Find the FROM clause in the CTE
+		const cteFromMatch = sql.match(/(FROM\s+(?:TEAM_THC2\.DATABRIDGE\.)?VW_DATABRIDGE_\w+)/i);
+		if (cteFromMatch) {
+			const fromClause = cteFromMatch[1];
+			// Add WHERE clause after the FROM, before the next line/paren
+			const replacement = `${fromClause}\n  WHERE ORG_ID = ${orgId}`;
+			return sql.replace(cteFromMatch[1], replacement);
+		}
+	}
+
+	// For non-CTE queries, add WHERE clause intelligently
+	const hasWhere = sqlUpper.includes('WHERE');
+	const hasJoin = sqlUpper.includes('JOIN');
+	
+	// Construct the ORG_ID filter
+	// If there's a JOIN, we need to filter ALL tables that have ORG_ID
+	let orgFilter = `ORG_ID = ${orgId}`;
+	
+	if (hasJoin) {
+		// Find all table aliases in FROM and JOIN clauses
+		const tableMatches = sql.match(/(?:FROM|JOIN)\s+(?:TEAM_THC2\.DATABRIDGE\.)?VW_DATABRIDGE_\w+\s+(?:AS\s+)?(\w+)/gi);
+		if (tableMatches && tableMatches.length > 0) {
+			const aliases: string[] = [];
+			tableMatches.forEach(match => {
+				const aliasMatch = match.match(/(?:FROM|JOIN)\s+(?:TEAM_THC2\.DATABRIDGE\.)?VW_DATABRIDGE_\w+\s+(?:AS\s+)?(\w+)/i);
+				if (aliasMatch && aliasMatch[1]) {
+					aliases.push(aliasMatch[1]);
+				}
+			});
+			
+			// Filter all tables by ORG_ID (with OR for LEFT JOINs to allow NULLs)
+			if (aliases.length > 1) {
+				// Multiple tables - filter each one
+				orgFilter = aliases.map(alias => `${alias}.ORG_ID = ${orgId}`).join(' AND ');
+			} else if (aliases.length === 1) {
+				// Single table with alias
+				orgFilter = `${aliases[0]}.ORG_ID = ${orgId}`;
+			}
+		}
+	}
+
+	if (!hasWhere) {
+		// Find the position to insert WHERE clause
+		// SQL order: SELECT ... FROM ... JOIN ... WHERE ... GROUP BY ... ORDER BY ... LIMIT
+		// WHERE must come BEFORE GROUP BY
+		const groupByMatch = sql.match(/\s+(GROUP\s+BY)/i);
+		const orderByMatch = sql.match(/\s+(ORDER\s+BY)/i);
+		const limitMatch = sql.match(/\s+(LIMIT\s+\d+)/i);
+		
+		// Check in correct SQL order - GROUP BY comes before ORDER BY
+		if (groupByMatch) {
+			// Insert WHERE before GROUP BY
+			return sql.replace(/\s+GROUP\s+BY/i, `\nWHERE ${orgFilter}\nGROUP BY`);
+		} else if (orderByMatch) {
+			// Insert WHERE before ORDER BY
+			return sql.replace(/\s+ORDER\s+BY/i, `\nWHERE ${orgFilter}\nORDER BY`);
+		} else if (limitMatch) {
+			// Insert WHERE before LIMIT
+			return sql.replace(/\s+LIMIT\s+/i, `\nWHERE ${orgFilter}\nLIMIT `);
+		} else {
+			// No clauses found - add WHERE at the end before semicolon if present
+			if (sql.trim().endsWith(';')) {
+				return sql.trim().slice(0, -1) + `\nWHERE ${orgFilter};`;
+			} else {
+				return sql.trim() + `\nWHERE ${orgFilter}`;
+			}
+		}
+	} else {
+		// Has WHERE clause - extend it with AND
+		// Find the WHERE clause and add our filter right after it
+		return sql.replace(/\bWHERE\b/i, `WHERE ${orgFilter} AND`);
+	}
+}
+
+/**
  * Natural language query interface for Snowflake
  * Converts user questions into SQL and executes them
  */
 export const POST: RequestHandler = async ({ request }) => {
 	try {
-		const { question, schemaContext } = await request.json();
+		const { question, schemaContext, orgId } = await request.json();
 
 		if (!question) {
 			return json({ success: false, error: 'Question is required' }, { status: 400 });
+		}
+
+		console.log('Generating SQL for question:', question);
+		if (orgId) {
+			console.log('Filtering by ORG_ID:', orgId);
 		}
 
 		// Step 1: Convert natural language to SQL using Claude
@@ -41,13 +147,14 @@ CRITICAL RULES:
 7. For client names, use CLIENT_FULL_NAME column
 8. Return ONLY the SQL query, no explanations, no markdown code blocks
 9. If the question cannot be answered, return "ERROR: Cannot generate query"
+${orgId ? `10. DO NOT add ORG_ID filtering - it will be added automatically` : ''}
 
 SQL Query:`;
 
 		console.log('Generating SQL for question:', question);
 
 		const sqlResponse = await anthropic.messages.create({
-			model: 'claude-3-5-sonnet-20241022',
+			model: 'claude-sonnet-4-5',
 			max_tokens: 1024,
 			messages: [
 				{
@@ -57,7 +164,7 @@ SQL Query:`;
 			]
 		});
 
-		const sqlQuery = sqlResponse.content[0].type === 'text' ? sqlResponse.content[0].text.trim() : '';
+		let sqlQuery = sqlResponse.content[0].type === 'text' ? sqlResponse.content[0].text.trim() : '';
 
 		if (sqlQuery.startsWith('ERROR:')) {
 			return json({
@@ -66,7 +173,7 @@ SQL Query:`;
 			});
 		}
 
-		console.log('Generated SQL:', sqlQuery);
+		console.log('Generated SQL (before org filter):', sqlQuery);
 
 		// Validate it's a SELECT query
 		const upperQuery = sqlQuery.toUpperCase().trim();
@@ -75,6 +182,18 @@ SQL Query:`;
 				success: false,
 				error: 'Only SELECT queries are allowed for security reasons'
 			});
+		}
+
+		// Apply ORG_ID filter if provided
+		if (orgId) {
+			try {
+				sqlQuery = applyOrgFilter(sqlQuery, orgId);
+				console.log('Generated SQL (after org filter):');
+				console.log(sqlQuery);
+			} catch (error) {
+				console.error('Error applying ORG_ID filter:', error);
+				// Continue without filter if there's an error
+			}
 		}
 
 		// Step 2: Execute the SQL query
@@ -99,7 +218,7 @@ ${results.length > 10 ? `\n... and ${results.length - 10} more rows` : ''}
 Provide a clear, concise answer to the user's question based on these results. Focus on insights and key findings.`;
 
 		const summaryResponse = await anthropic.messages.create({
-			model: 'claude-3-5-sonnet-20241022',
+			model: 'claude-sonnet-4-5',
 			max_tokens: 2048,
 			messages: [
 				{

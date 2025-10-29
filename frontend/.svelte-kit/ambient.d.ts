@@ -85,7 +85,6 @@ declare module '$env/static/private' {
 	export const XPC_FLAGS: string;
 	export const FNM_MULTISHELL_PATH: string;
 	export const npm_package_engines_node: string;
-	export const NODE_TLS_REJECT_UNAUTHORIZED: string;
 	export const npm_config_node_gyp: string;
 	export const npm_package_version: string;
 	export const XPC_SERVICE_NAME: string;
@@ -107,6 +106,7 @@ declare module '$env/static/private' {
 	export const HOMEBREW_CELLAR: string;
 	export const VSCODE_DOTNET_INSTALL_TOOL_ORIGINAL_HOME: string;
 	export const CLAUDECODE: string;
+	export const VSCODE_L10N_BUNDLE_LOCATION: string;
 	export const DEBUG: string;
 	export const VSCODE_CWD: string;
 	export const NODE_EXTRA_CA_CERTS: string;
@@ -202,7 +202,6 @@ declare module '$env/dynamic/private' {
 		XPC_FLAGS: string;
 		FNM_MULTISHELL_PATH: string;
 		npm_package_engines_node: string;
-		NODE_TLS_REJECT_UNAUTHORIZED: string;
 		npm_config_node_gyp: string;
 		npm_package_version: string;
 		XPC_SERVICE_NAME: string;
@@ -224,6 +223,7 @@ declare module '$env/dynamic/private' {
 		HOMEBREW_CELLAR: string;
 		VSCODE_DOTNET_INSTALL_TOOL_ORIGINAL_HOME: string;
 		CLAUDECODE: string;
+		VSCODE_L10N_BUNDLE_LOCATION: string;
 		DEBUG: string;
 		VSCODE_CWD: string;
 		NODE_EXTRA_CA_CERTS: string;

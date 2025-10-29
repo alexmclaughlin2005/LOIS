@@ -24,8 +24,21 @@ This schema contains views with legal case and project data.
 - Links clients to their billing contacts
 
 **VW_DATABRIDGE_BILLING_TRANSACTION_DATA_V1**
-- Billing transaction records
-- Financial transactions and payment history
+- Payment transactions and refunds applied to invoices
+- NOTE: This does NOT contain invoice line items (time entries/expenses)
+- Key columns:
+  * ID - Unique transaction identifier
+  * PROJECT_ID - Links to project/case
+  * INVOICE_ID - Links to invoice
+  * TRANSACTION_TYPE - Type: 'PAYMENT', 'REFUND', etc.
+  * TOTAL - Payment amount
+  * AMOUNT_APPLIED_TO_INVOICE - How much was applied to the invoice
+  * DATE - Date of transaction
+  * DATE_APPLIED - When payment was applied
+  * SOURCE - Payment source (e.g., 'FV Payments')
+  * REFERENCE_NUMBER - Payment reference
+  * IS_VOID - Whether transaction was voided
+  * IS_WRITE_OFF - Whether this is a write-off
 
 **VW_DATABRIDGE_CLIENT_INFO_V1**
 - Core client information
@@ -44,8 +57,20 @@ This schema contains views with legal case and project data.
 - Links to case documents
 
 **VW_DATABRIDGE_INVOICE_DATA_V1**
-- Invoice records
-- Billing and invoicing information
+- Invoice records and billing information
+- Key columns:
+  * ID - Unique invoice identifier
+  * INVOICE_NUMBER - Invoice number
+  * PROJECT_ID - Links to project/case
+  * INVOICE_DATE - Date invoice was created
+  * DUE_DATE - Payment due date
+  * SENT_DATE - Date invoice was sent to client
+  * FINALIZED_DATE - Date invoice was finalized (NULL = draft/unbilled)
+  * VOIDED_DATE - Date invoice was voided (NULL = not voided)
+  * TOTAL - Total invoice amount
+  * OUTSTANDING_BALANCE - Amount still owed
+  * CREATED_DATE - Timestamp when record was created (USE THIS, NOT CREATED_AT)
+  * LAST_UPDATED_DATE - Timestamp when record was last updated
 
 **VW_DATABRIDGE_NOTES_DATA_V1**
 - Case notes and memoranda
@@ -134,6 +159,8 @@ This schema contains views with legal case and project data.
 5. Join with VW_DATABRIDGE_PERSON_STANDARD_DATA_V1 for client information
 6. Use VW_DATABRIDGE_DOCS_V1 for document-related queries
 7. Use VW_DATABRIDGE_USERS_V1 for user/team member information
+8. ORG_ID filtering will be added automatically - DO NOT add it yourself
+9. For INVOICE table, use CREATED_DATE (not CREATED_AT) for timestamp ordering
 
 ## Common Query Patterns:
 
@@ -171,6 +198,26 @@ WHERE CREATED_AT >= DATEADD(month, -1, CURRENT_DATE())
 ORDER BY CREATED_AT DESC
 LIMIT 100
 \`\`\`
+
+**Querying invoices:**
+\`\`\`sql
+SELECT ID, INVOICE_NUMBER, PROJECT_ID, TOTAL, OUTSTANDING_BALANCE, CREATED_DATE
+FROM TEAM_THC2.DATABRIDGE.VW_DATABRIDGE_INVOICE_DATA_V1
+ORDER BY CREATED_DATE DESC
+LIMIT 100
+\`\`\`
+
+**Querying payments applied to invoices:**
+\`\`\`sql
+SELECT bt.DATE, bt.TRANSACTION_TYPE, bt.TOTAL, bt.AMOUNT_APPLIED_TO_INVOICE, bt.SOURCE
+FROM TEAM_THC2.DATABRIDGE.VW_DATABRIDGE_BILLING_TRANSACTION_DATA_V1 bt
+JOIN TEAM_THC2.DATABRIDGE.VW_DATABRIDGE_INVOICE_DATA_V1 i ON bt.INVOICE_ID = i.ID
+WHERE i.INVOICE_NUMBER = 7
+ORDER BY bt.DATE
+LIMIT 100
+\`\`\`
+
+**NOTE:** Invoice line items (time entries, expenses, fees) are NOT available in this Snowflake schema.
 `;
 
 /**

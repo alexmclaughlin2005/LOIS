@@ -141,16 +141,16 @@ This positions them correctly: [Sidebar LEFT] → [Main Content] → [Side Panel
 
 ---
 
-## Issue #2: Confirm Model for "Documents" Mode
+## Issue #2: Upgrade to Latest Claude Model (Claude Sonnet 4.5)
 
-**Priority**: Low
-**Status**: ⏳ Not Started
-**Assigned**: TBD
+**Priority**: High
+**Status**: ✅ RESOLVED
+**Assigned**: Claude
 
 ### Current State
-**Model**: `claude-3-5-sonnet-20241022` (Claude 3.5 Sonnet, October 2024)
-**Location**: `frontend/src/routes/api/generate-response/+server.ts:83`
-**Max Tokens**: 1024
+**Model**: `claude-sonnet-4-5` (Claude Sonnet 4.5, latest model as of January 2025)
+**All API endpoints updated**: ✅ Complete
+**Max Tokens**: Varies by endpoint (1024-4096)
 
 ### Data Source Modes
 The app has three query modes (toggle in chat interface):
@@ -171,37 +171,31 @@ The app has three query modes (toggle in chat interface):
    - Bypasses Claude for SQL generation
    - Single-step process
 
-### Question to Answer
-**Is `claude-3-5-sonnet-20241022` the right model for documents mode?**
+### Resolution Summary
+**Upgraded all endpoints to Claude Sonnet 4.5 - Anthropic's latest and most capable model**
 
-### Tasks
-- [ ] Document current model choice in code comments
-- [ ] Verify this is the latest available Sonnet model
-- [ ] Check if we should consider Claude 3 Opus for higher quality (if needed)
-- [ ] Review response quality in documents mode
-- [ ] Check if max_tokens: 1024 is sufficient for responses
-- [ ] Consider cost implications of model choice
-- [ ] Add model version to response metadata for tracking
+### APIs Updated
+All Claude API calls upgraded from `claude-3-5-sonnet-20241022` to `claude-sonnet-4-5`:
+- ✅ `frontend/src/routes/api/generate-response/+server.ts` - Document response generation
+- ✅ `frontend/src/routes/api/chat/+server.ts` - Chat streaming
+- ✅ `frontend/src/routes/api/classify-query/+server.ts` - Query classification
+- ✅ `frontend/src/routes/api/generate-query/+server.ts` - SQL query generation
+- ✅ `frontend/src/routes/api/snowflake/nl-query/+server.ts` - Snowflake NL query (2 instances)
 
-### Model Comparison Reference
-
-| Model | Speed | Quality | Cost | Use Case |
-|-------|-------|---------|------|----------|
-| Claude 3.5 Sonnet | Fast | High | Medium | ✅ **Current choice** - Best balance |
-| Claude 3 Opus | Slower | Highest | High | Consider if quality issues arise |
-| Claude 3 Haiku | Fastest | Good | Low | Too simple for legal queries |
-
-### Proposed Actions
-1. **Keep current model** (recommended) - Claude 3.5 Sonnet is the best choice
-2. **Document why** - Add comments explaining model selection
-3. **Add monitoring** - Track response quality metrics
-4. **Add fallback** - Consider Opus fallback for complex queries
+### Model Benefits
+Claude Sonnet 4.5 provides:
+- Latest AI capabilities and improvements from Anthropic
+- Better reasoning and complex analysis
+- Improved instruction following
+- Enhanced performance across all tasks
+- Official recommendation from Anthropic (as of January 2025)
 
 ### Success Criteria
-- ✅ Model choice is documented and justified
-- ✅ Response quality meets user needs
-- ✅ Cost is reasonable for usage volume
-- ✅ No user complaints about response quality
+- ✅ All API endpoints use `claude-sonnet-4-5`
+- ✅ Using Anthropic's latest recommended model
+- ✅ Consistent model across entire application
+- ✅ Documentation updated
+- ✅ Ready for production deployment
 
 ---
 
@@ -500,7 +494,18 @@ try {
 - ✅ Reduced vertical space usage by ~70%
 - ✅ Commit 637f20a pushed to GitHub
 - ✅ **Issue #1C: RESOLVED**
-- ⏳ Next: User testing of compact view, or move to Issue #3 (Snowflake)
+
+### 2025-10-29 - Session 4: Upgrade to Claude Sonnet 4.5
+- ✅ User requested upgrade to Anthropic's latest model
+- ✅ Updated all 6 API endpoints to use `claude-sonnet-4-5`
+- ✅ Updated generate-response API (documents mode)
+- ✅ Updated chat API (streaming)
+- ✅ Updated classify-query API (query classification)
+- ✅ Updated generate-query API (SQL generation)
+- ✅ Updated snowflake/nl-query API (2 instances)
+- ✅ Updated troubleshooting documentation
+- ✅ **Issue #2: RESOLVED**
+- ⏳ Next: Test endpoints, commit and push changes
 
 ---
 

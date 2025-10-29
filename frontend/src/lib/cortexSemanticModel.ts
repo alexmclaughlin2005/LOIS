@@ -25,10 +25,12 @@ description: |
   Personal Injury, Family Law, Criminal Defense, Civil Litigation, etc.
 
   Billing Status Understanding:
-  - "Billed" items: On invoices where FINALIZED_DATE IS NOT NULL
-  - "Unbilled" items: Either (1) not on any invoice yet, OR (2) on invoices
-    where FINALIZED_DATE IS NULL (draft/pending/approved status)
-  - Use FINALIZED_DATE to determine if an invoice has been officially sent
+  - "UNBILLED" fees/expenses/time: Invoices where FINALIZED_DATE IS NULL
+    (draft invoices that have been created but not yet finalized/sent to client)
+  - "BILLED" fees/expenses/time: Invoices where FINALIZED_DATE IS NOT NULL
+    (finalized invoices that have been officially sent to clients)
+  - Use "WHERE FINALIZED_DATE IS NULL" to find unbilled time/fees
+  - Use "WHERE FINALIZED_DATE IS NOT NULL" to find billed time/fees
 
   Primary workflow: Projects → People → Invoices → Transactions → Documents
 
@@ -138,7 +140,7 @@ tables:
         unique: true
 
   - name: VW_DATABRIDGE_INVOICE_DATA_V1
-    description: "Invoice records and billing information. Links to projects via PROJECT_ID."
+    description: "Invoice records and billing information. Links to projects via PROJECT_ID. To find which cases have unbilled invoices, JOIN this table with VW_DATABRIDGE_PROJECT_LIST_DATA_V1 using PROJECT_ID and filter WHERE FINALIZED_DATE IS NULL."
     base_table:
       database: TEAM_THC2
       schema: DATABRIDGE
@@ -189,8 +191,8 @@ tables:
         data_type: DATE
 
       - name: finalized_date
-        synonyms: ["date finalized", "completed date"]
-        description: "Date the invoice was finalized"
+        synonyms: ["date finalized", "completed date", "billed date", "sent to client date"]
+        description: "Date the invoice was finalized and sent to client. NULL means unbilled/draft status."
         expr: FINALIZED_DATE
         data_type: DATE
 
@@ -201,8 +203,8 @@ tables:
         data_type: DATE
 
       - name: total
-        synonyms: ["invoice total", "amount", "bill amount", "invoice amount"]
-        description: "Total invoice amount"
+        synonyms: ["invoice total", "amount", "bill amount", "invoice amount", "fees", "time charges", "expenses"]
+        description: "Total invoice amount including all fees, time charges, and expenses"
         expr: TOTAL
         data_type: NUMBER
 
@@ -229,6 +231,112 @@ tables:
         synonyms: ["total unpaid", "total balance due", "sum of outstanding"]
         description: "Sum of all outstanding balances"
         expr: SUM(OUTSTANDING_BALANCE)
+        data_type: NUMBER
+
+      - name: unbilled_amount
+        synonyms: ["unbilled fees", "unbilled time", "unbilled expenses", "WIP", "work in progress", "draft invoices total", "unfinalized fees"]
+        description: "Total amount on invoices that have not been finalized (FINALIZED_DATE IS NULL). This represents unbilled time, fees, and expenses."
+        expr: SUM(CASE WHEN FINALIZED_DATE IS NULL THEN TOTAL ELSE 0 END)
+        data_type: NUMBER
+
+      - name: billed_amount
+        synonyms: ["finalized fees", "billed fees", "sent invoices total", "finalized time", "billed time"]
+        description: "Total amount on invoices that have been finalized (FINALIZED_DATE IS NOT NULL). This represents billed time, fees, and expenses."
+        expr: SUM(CASE WHEN FINALIZED_DATE IS NOT NULL THEN TOTAL ELSE 0 END)
+        data_type: NUMBER
+
+      - name: unbilled_count
+        synonyms: ["number of unbilled invoices", "draft invoice count", "unfinalized invoice count"]
+        description: "Count of invoices that have not been finalized (unbilled/draft status)"
+        expr: COUNT(CASE WHEN FINALIZED_DATE IS NULL THEN 1 END)
+        data_type: NUMBER
+
+      - name: billed_count
+        synonyms: ["number of billed invoices", "finalized invoice count"]
+        description: "Count of invoices that have been finalized and sent to clients"
+        expr: COUNT(CASE WHEN FINALIZED_DATE IS NOT NULL THEN 1 END)
+        data_type: NUMBER
+
+  - name: VW_DATABRIDGE_BILLING_TRANSACTION_DATA_V1
+    description: "Payment transactions and billing activity. Links to invoices via INVOICE_ID and projects via PROJECT_ID."
+    base_table:
+      database: TEAM_THC2
+      schema: DATABRIDGE
+      table: VW_DATABRIDGE_BILLING_TRANSACTION_DATA_V1
+
+    dimensions:
+      - name: transaction_id
+        synonyms: ["payment id", "transaction number", "id"]
+        description: "Unique transaction identifier"
+        expr: ID
+        data_type: NUMBER
+        unique: true
+
+      - name: project_id
+        synonyms: ["case id", "project identifier"]
+        description: "Links transaction to a specific case/project"
+        expr: PROJECT_ID
+        data_type: NUMBER
+
+      - name: invoice_id
+        synonyms: ["bill id", "invoice number"]
+        description: "Links transaction to a specific invoice"
+        expr: INVOICE_ID
+        data_type: NUMBER
+
+      - name: transaction_type
+        synonyms: ["payment type", "type", "transaction category"]
+        description: "Type of transaction (e.g., PAYMENT, REFUND, etc.)"
+        expr: TRANSACTION_TYPE
+        data_type: TEXT
+
+      - name: transaction_date
+        synonyms: ["date", "payment date", "transaction date"]
+        description: "Date of the transaction"
+        expr: DATE
+        data_type: DATE
+
+      - name: total
+        synonyms: ["amount", "payment amount", "transaction amount"]
+        description: "Total transaction amount"
+        expr: TOTAL
+        data_type: NUMBER
+
+      - name: amount_applied
+        synonyms: ["applied amount", "amount applied to invoice", "payment applied"]
+        description: "Amount applied to the invoice"
+        expr: AMOUNT_APPLIED_TO_INVOICE
+        data_type: NUMBER
+
+      - name: is_void
+        synonyms: ["voided", "cancelled"]
+        description: "Whether the transaction has been voided"
+        expr: IS_VOID
+        data_type: BOOLEAN
+
+      - name: is_write_off
+        synonyms: ["written off", "write off"]
+        description: "Whether the transaction is a write-off"
+        expr: IS_WRITE_OFF
+        data_type: BOOLEAN
+
+    measures:
+      - name: total_transactions
+        synonyms: ["transaction count", "number of transactions", "payment count"]
+        description: "Total number of transactions"
+        expr: COUNT(*)
+        data_type: NUMBER
+
+      - name: total_payments
+        synonyms: ["sum of payments", "total paid", "total payment amount"]
+        description: "Sum of all payment amounts"
+        expr: SUM(TOTAL)
+        data_type: NUMBER
+
+      - name: total_applied
+        synonyms: ["sum applied", "total applied to invoices"]
+        description: "Sum of all amounts applied to invoices"
+        expr: SUM(AMOUNT_APPLIED_TO_INVOICE)
         data_type: NUMBER
 
   - name: VW_DATABRIDGE_DOCS_V1

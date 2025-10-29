@@ -550,12 +550,16 @@
 		// Handle Snowflake queries (Claude-based NL-to-SQL)
 		if (dataSource === 'snowflake') {
 			try {
+				// Get selected org_id from localStorage
+				const selectedOrgId = localStorage.getItem('selectedOrgId');
+
 				const response = await fetch('/api/snowflake/nl-query', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
 						question: userMessage,
-						schemaContext: SNOWFLAKE_SCHEMA_CONTEXT
+						schemaContext: SNOWFLAKE_SCHEMA_CONTEXT,
+						orgId: selectedOrgId // Pass the selected org_id for filtering
 					})
 				});
 
@@ -607,12 +611,46 @@
 				// Get selected org_id from localStorage (set in admin settings)
 				const selectedOrgId = localStorage.getItem('selectedOrgId');
 
+				// Build conversation history from previous messages
+				// Cortex Analyst requires strict alternation: user -> analyst -> user -> analyst
+				// AND the history must end with 'analyst' (since the new question will be 'user')
+				const conversationHistory: Array<{role: 'user' | 'analyst', content: Array<{type: 'text', text: string}>}> = [];
+				let lastRole: 'user' | 'analyst' | null = null;
+				
+				for (const msg of messages) {
+					// Skip empty messages
+					if (!msg.content || msg.content.trim() === '') continue;
+					
+					const role = msg.role === 'user' ? 'user' : 'analyst';
+					
+					// Only add if role is different from last role (ensure alternation)
+					if (role !== lastRole) {
+						conversationHistory.push({
+							role: role,
+							content: [{
+								type: 'text',
+								text: msg.content
+							}]
+						});
+						lastRole = role;
+					}
+				}
+				
+				// Ensure conversation history ends with 'analyst' role
+				// If it ends with 'user', remove the last message
+				if (conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1].role === 'user') {
+					conversationHistory.pop();
+				}
+
+				console.log('Conversation history length:', conversationHistory.length);
+				console.log('Last role in history:', conversationHistory.length > 0 ? conversationHistory[conversationHistory.length - 1].role : 'none');
+
 				const response = await fetch('/api/snowflake/cortex-analyst', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
 						question: userMessage,
-						conversationHistory: [], // TODO: Add conversation history for multi-turn
+						conversationHistory: conversationHistory,
 						orgId: selectedOrgId // Pass the selected org_id for filtering
 					})
 				});
@@ -1108,7 +1146,7 @@
 											<DataPreviewCard
 												title={message.structuredData.title}
 												data={message.structuredData.data}
-												onViewFull={() => showResults(message.structuredData)}
+												onViewFull={() => showResults(message.structuredData!)}
 											/>
 										{/if}
 									{/if}

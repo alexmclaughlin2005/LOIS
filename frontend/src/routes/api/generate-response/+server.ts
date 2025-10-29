@@ -80,7 +80,7 @@ The cases span a range of injury types and medical expense levels. His involveme
 Now, generate a response for the user's question based on the provided data.`;
 
 		const message = await anthropic.messages.create({
-			model: 'claude-3-5-sonnet-20241022',
+			model: 'claude-sonnet-4-5',
 			max_tokens: 1024,
 			messages: [
 				{
