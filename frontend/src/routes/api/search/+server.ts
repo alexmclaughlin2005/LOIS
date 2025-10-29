@@ -2,14 +2,11 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import Anthropic from '@anthropic-ai/sdk';
 import { ANTHROPIC_API_KEY } from '$env/static/private';
-import { createClient } from '@supabase/supabase-js';
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+import { executeSnowflakeQuery } from '$lib/snowflake';
 
 const anthropic = new Anthropic({
 	apiKey: ANTHROPIC_API_KEY
 });
-
-const supabase = createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY);
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
@@ -24,51 +21,90 @@ export const POST: RequestHandler = async ({ request }) => {
 			console.log('🏢 Filtering by org_id:', orgId);
 		}
 
-		// Step 1: Execute a broad database query to get potential matches
-		// For now, we'll search across cases, contacts, and activities
-		// This is a simplified version - in production you'd want more sophisticated search
+		// Step 1: Execute Snowflake queries to get potential matches
 		let searchResults: any[] = [];
 
-		// Search cases by case_number, title, or description
-		const { data: cases, error: casesError } = await supabase
-			.from('cases')
-			.select('case_id, case_number, title, description, case_type, status, practice_area')
-			.or(`case_number.ilike.%${query}%,title.ilike.%${query}%,description.ilike.%${query}%`)
-			.limit(10);
+		// Build ORG_ID filter if provided
+		const orgFilter = orgId ? `WHERE ORG_ID = ${orgId}` : '';
 
-		if (cases && !casesError) {
-			searchResults = cases.map(c => ({
-				type: 'case',
-				id: c.case_id,
-				data: c
-			}));
+		// Search projects/cases by project number or name
+		const projectQuery = `
+			SELECT
+				PROJECT_ID,
+				PROJECT_NUMBER,
+				PROJECT_NAME,
+				PROJECT_TYPE_NAME,
+				PHASE_NAME,
+				CLIENT_FULL_NAME,
+				FIRST_PRIMARY_USER_FULL_NAME,
+				CREATED_AT,
+				CURRENT_BALANCE
+			FROM TEAM_THC2.DATABRIDGE.VW_DATABRIDGE_PROJECT_LIST_DATA_V1
+			${orgFilter}
+			${orgFilter ? 'AND' : 'WHERE'} (
+				UPPER(PROJECT_NUMBER) LIKE UPPER('%${query}%')
+				OR UPPER(PROJECT_NAME) LIKE UPPER('%${query}%')
+				OR UPPER(CLIENT_FULL_NAME) LIKE UPPER('%${query}%')
+			)
+			LIMIT 10
+		`;
+
+		try {
+			const projectResults = await executeSnowflakeQuery(projectQuery);
+			if (projectResults && projectResults.length > 0) {
+				searchResults = projectResults.map((p: any) => ({
+					type: 'project',
+					id: p.PROJECT_ID,
+					data: p
+				}));
+			}
+		} catch (error) {
+			console.error('Error searching projects:', error);
 		}
 
-		// Search contacts by name
-		const { data: contacts, error: contactsError } = await supabase
-			.from('contacts')
-			.select('contact_id, first_name, last_name, role, email, phone')
-			.or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
-			.limit(10);
+		// Search people/contacts by name
+		const personQuery = `
+			SELECT
+				PERSON_ID,
+				FULL_NAME,
+				FIRST_NAME,
+				LAST_NAME,
+				EMAIL,
+				PHONE,
+				PERSON_TYPE
+			FROM TEAM_THC2.DATABRIDGE.VW_DATABRIDGE_PERSON_STANDARD_DATA_V1
+			${orgFilter}
+			${orgFilter ? 'AND' : 'WHERE'} (
+				UPPER(FULL_NAME) LIKE UPPER('%${query}%')
+				OR UPPER(FIRST_NAME) LIKE UPPER('%${query}%')
+				OR UPPER(LAST_NAME) LIKE UPPER('%${query}%')
+			)
+			LIMIT 10
+		`;
 
-		if (contacts && !contactsError) {
-			searchResults = [
-				...searchResults,
-				...contacts.map(c => ({
-					type: 'contact',
-					id: c.contact_id,
-					data: c
-				}))
-			];
+		try {
+			const personResults = await executeSnowflakeQuery(personQuery);
+			if (personResults && personResults.length > 0) {
+				searchResults = [
+					...searchResults,
+					...personResults.map((p: any) => ({
+						type: 'person',
+						id: p.PERSON_ID,
+						data: p
+					}))
+				];
+			}
+		} catch (error) {
+			console.error('Error searching people:', error);
 		}
 
-		console.log(`📊 Found ${searchResults.length} potential matches`);
+		console.log(`📊 Found ${searchResults.length} potential matches from Snowflake`);
 
 		// Step 2: Use Claude to analyze and rank the search results
 		// Generate relevance reasoning for each result
 		const prompt = `You are a legal case management search assistant. The user searched for: "${query}"
 
-Here are the database search results:
+Here are the Snowflake database search results:
 
 ${JSON.stringify(searchResults, null, 2)}
 
@@ -81,20 +117,24 @@ Return a JSON array with this structure:
 [
   {
     "id": "result_id",
-    "type": "case" | "contact",
-    "title": "Display title",
-    "subtitle": "Secondary info (optional)",
-    "snippet": "Brief relevant text from the result",
-    "relevanceReason": "1-2 sentences explaining why this is relevant",
+    "type": "project" | "person",
+    "title": "Display title (e.g. project name or person full name)",
+    "subtitle": "Secondary info (e.g. project number, person type)",
+    "snippet": "Brief relevant text highlighting key info (e.g. client name, phase, email)",
+    "relevanceReason": "1-2 sentences explaining why this is relevant to the search query",
     "relevanceScore": 0-100,
     "metadata": {
-      "key": "value"
+      "key": "value pairs with additional context"
     }
   }
 ]
 
-Sort results by relevance score (highest first). Only include results with relevance score > 30.
-Be concise and specific in the relevance reasoning.`;
+Guidelines:
+- For projects: Use PROJECT_NAME as title, PROJECT_NUMBER as subtitle, include CLIENT_FULL_NAME and PHASE_NAME in snippet
+- For people: Use FULL_NAME as title, PERSON_TYPE as subtitle, include EMAIL or PHONE in snippet
+- Sort results by relevance score (highest first)
+- Only include results with relevance score > 30
+- Be concise and specific in the relevance reasoning`;
 
 		const message = await anthropic.messages.create({
 			model: 'claude-sonnet-4-5',
