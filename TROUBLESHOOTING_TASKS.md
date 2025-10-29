@@ -27,10 +27,11 @@ This document tracks three key issues that need investigation and resolution in 
 ### Problem
 Need to verify and improve the user experience:
 1. ✅ **FIXED**: Positioning Issue - Modal was rendered outside app container
-2. **Persistence Issue**: Prompts only stored in-memory (lost on refresh)
-3. **Discoverability**: "Star" button on homepage may not be intuitive
-4. **Placeholder UX**: Need to verify placeholder filling works smoothly
-5. **Mobile Responsiveness**: Check if library works well on mobile devices
+2. ✅ **FIXED**: Persistence Issue - Implemented localStorage
+3. ✅ **FIXED**: Space Usage - Implemented compact list view
+4. **Discoverability**: "Star" button on homepage may not be intuitive
+5. **Placeholder UX**: Need to verify placeholder filling works smoothly
+6. **Mobile Responsiveness**: Check if library works well on mobile devices
 
 ### Issue #1A: Positioning Bug (✅ FIXED)
 
@@ -54,6 +55,51 @@ This positions them correctly: [Sidebar LEFT] → [Main Content] → [Side Panel
 - `6c0844f` - Initial positioning fix
 - `ece55a3` - Corrected to RIGHT side (final fix)
 
+### Issue #1B: localStorage Persistence (✅ FIXED)
+
+**Problem**: Prompts were only stored in memory, lost on page refresh
+
+**Solution Applied**:
+- Added `loadPromptsFromStorage()` function to read from localStorage on mount
+- Added `savePromptsToStorage()` function called after all CRUD operations
+- Storage key: `'lois_saved_prompts'`
+- Fallback to DEFAULT_PROMPTS if localStorage is empty
+- All operations (create, edit, delete, favorite, use) now persist changes
+
+**Files Changed**:
+- `frontend/src/lib/components/SavedPromptsLibrary.svelte`
+
+**Commit**:
+- `7327e00` - Add localStorage persistence
+
+### Issue #1C: Compact List View (✅ FIXED)
+
+**Problem**: Each saved prompt took up too much space with large card layout
+
+**Solution Applied**:
+- Replaced card grid with vertical compact list
+- Added expand/collapse functionality for details
+- Always-visible prompt preview (2-line truncated)
+- Collapsible section for description and tags
+- Inline action buttons instead of separate footer
+- Reduced vertical space usage by ~70%
+
+**Design Changes**:
+- Main row: favorite star + category pill + title + usage badge + expand button
+- Preview row: Always visible, shows 2 lines of prompt text
+- Expanded row: Shows full description and tags (animated slideDown)
+- Actions row: Edit, Delete, Use Prompt buttons inline
+
+**Files Changed**:
+- `frontend/src/lib/components/SavedPromptsLibrary.svelte`
+  - Added `expandedPromptId` state variable
+  - Added `toggleExpanded()` function
+  - Replaced `.prompts-grid` markup with `.prompts-list`
+  - Replaced card-based CSS with compact list CSS
+
+**Commit**:
+- `637f20a` - Implement compact list view
+
 ### Files to Review
 - `frontend/src/lib/components/SavedPromptsLibrary.svelte`
 - `frontend/src/lib/components/PromptCreation.svelte`
@@ -61,14 +107,16 @@ This positions them correctly: [Sidebar LEFT] → [Main Content] → [Side Panel
 - `frontend/src/lib/types/prompt.ts`
 
 ### Tasks
-- [x] **FIX APPLIED**: Fixed positioning bug on main page
+- [x] **COMPLETED**: Fixed positioning bug on main page (Issue #1A)
+- [x] **COMPLETED**: Implemented localStorage persistence (Issue #1B)
+- [x] **COMPLETED**: Implemented compact list view (Issue #1C)
 - [ ] Test saved prompts modal opens correctly on main page
 - [ ] Verify modal opens on both main page AND chat page
-- [ ] Test saved prompts on fresh browser session (verify persistence issue)
+- [ ] Test compact list view expand/collapse functionality
+- [ ] Test saved prompts persist across browser sessions
 - [ ] Review UX flow for creating new prompt
 - [ ] Test placeholder replacement functionality
 - [ ] Check mobile/tablet responsiveness
-- [ ] Implement localStorage persistence (recommended next step)
 - [ ] Consider adding Supabase persistence (future enhancement)
 - [ ] Gather user feedback on discoverability
 
@@ -434,7 +482,25 @@ try {
 - ✅ User testing: Confirmed working correctly
 - ✅ Pushed to GitHub: All 5 commits pushed successfully
 - ✅ **Issue #1A: RESOLVED**
-- ⏳ Next: Add localStorage persistence or move to Issue #3 (Snowflake)
+
+### 2025-10-29 - Session 2: localStorage Persistence
+- ✅ Implemented localStorage persistence for saved prompts
+- ✅ Added loadPromptsFromStorage() and savePromptsToStorage() functions
+- ✅ Updated all CRUD operations to persist changes
+- ✅ Commit 7327e00 pushed to GitHub
+- ✅ **Issue #1B: RESOLVED**
+
+### 2025-10-29 - Session 3: Compact List View
+- ✅ User requested compact design to reduce space usage
+- ✅ Replaced large card grid with vertical compact list
+- ✅ Added expand/collapse functionality for prompt details
+- ✅ Implemented always-visible 2-line prompt preview
+- ✅ Added collapsible section for description and tags
+- ✅ Created inline action buttons layout
+- ✅ Reduced vertical space usage by ~70%
+- ✅ Commit 637f20a pushed to GitHub
+- ✅ **Issue #1C: RESOLVED**
+- ⏳ Next: User testing of compact view, or move to Issue #3 (Snowflake)
 
 ---
 
