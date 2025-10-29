@@ -69,6 +69,11 @@
 </svelte:head>
 
 <div class="app-container">
+	<!-- Saved Prompts Library (Side Panel) -->
+	{#if showSavedPrompts}
+		<SavedPromptsLibrary onUsePrompt={handleUsePrompt} onClose={handleCloseSavedPrompts} />
+	{/if}
+
 	<!-- Sidebar -->
 	<aside class="sidebar">
 		<div class="sidebar-header">
@@ -681,10 +686,6 @@
 		}
 	}
 </style>
-
-{#if showSavedPrompts}
-	<SavedPromptsLibrary onUsePrompt={handleUsePrompt} onClose={handleCloseSavedPrompts} />
-{/if}
 
 {#if showRoutinesLibrary}
 	<RoutinesLibrary

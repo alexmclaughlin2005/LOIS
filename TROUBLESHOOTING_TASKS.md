@@ -14,8 +14,8 @@ This document tracks three key issues that need investigation and resolution in 
 ## Issue #1: Saved Prompts UX Improvements
 
 **Priority**: Medium
-**Status**: ⏳ Not Started
-**Assigned**: TBD
+**Status**: 🟡 In Progress - Partial Fix Applied
+**Assigned**: Claude & User
 
 ### Current State
 - Feature is functionally complete per `SAVED_PROMPTS_FEATURE.md`
@@ -26,10 +26,22 @@ This document tracks three key issues that need investigation and resolution in 
 
 ### Problem
 Need to verify and improve the user experience:
-1. **Persistence Issue**: Prompts only stored in-memory (lost on refresh)
-2. **Discoverability**: "Star" button on homepage may not be intuitive
-3. **Placeholder UX**: Need to verify placeholder filling works smoothly
-4. **Mobile Responsiveness**: Check if library works well on mobile devices
+1. ✅ **FIXED**: Positioning Issue - Modal was rendered outside app container
+2. **Persistence Issue**: Prompts only stored in-memory (lost on refresh)
+3. **Discoverability**: "Star" button on homepage may not be intuitive
+4. **Placeholder UX**: Need to verify placeholder filling works smoothly
+5. **Mobile Responsiveness**: Check if library works well on mobile devices
+
+### Issue #1A: Positioning Bug (FIXED)
+
+**Problem Found**: The `SavedPromptsLibrary` component was rendered AFTER the closing `</style>` tag and OUTSIDE the `.app-container` div. Since `.app-container` has `overflow: hidden`, the side panel (480px wide) was being clipped and hidden.
+
+**Solution Applied**: Moved the `{#if showSavedPrompts}` block INSIDE the `.app-container` div, right before the sidebar. This ensures the side panel renders correctly within the layout.
+
+**Files Changed**:
+- `frontend/src/routes/+page.svelte` - Lines 72-75 (added), removed duplicate at line 690
+
+**Commit**: Pending
 
 ### Files to Review
 - `frontend/src/lib/components/SavedPromptsLibrary.svelte`
@@ -38,11 +50,14 @@ Need to verify and improve the user experience:
 - `frontend/src/lib/types/prompt.ts`
 
 ### Tasks
+- [x] **FIX APPLIED**: Fixed positioning bug on main page
+- [ ] Test saved prompts modal opens correctly on main page
+- [ ] Verify modal opens on both main page AND chat page
 - [ ] Test saved prompts on fresh browser session (verify persistence issue)
 - [ ] Review UX flow for creating new prompt
 - [ ] Test placeholder replacement functionality
 - [ ] Check mobile/tablet responsiveness
-- [ ] Consider adding localStorage persistence
+- [ ] Implement localStorage persistence (recommended next step)
 - [ ] Consider adding Supabase persistence (future enhancement)
 - [ ] Gather user feedback on discoverability
 
@@ -399,9 +414,12 @@ try {
 
 ## Progress Log
 
-### 2025-10-29
+### 2025-10-29 - Session 1
 - ✅ Created comprehensive troubleshooting document
-- ⏳ Ready to start Issue #3 (Snowflake connection)
+- ✅ Identified Issue #1A: Positioning bug in SavedPromptsLibrary
+- ✅ Fixed: Moved component inside .app-container for proper rendering
+- ✅ Started dev server for testing (http://localhost:5175/)
+- ⏳ Next: Test fix and implement persistence
 
 ---
 
