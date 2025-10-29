@@ -17,27 +17,33 @@
 </script>
 
 <div class="search-result-card" on:click={handleClick} role="button" tabindex="0">
+	<!-- Title and Subtitle -->
 	<div class="result-header">
-		<div class="result-title-section">
-			<h3 class="result-title">{result.title}</h3>
-			{#if result.subtitle}
-				<span class="result-subtitle">{result.subtitle}</span>
-			{/if}
-		</div>
-		{#if result.metadata}
-			<div class="result-metadata">
-				{#each Object.entries(result.metadata) as [key, value]}
-					<span class="metadata-badge">{key}: {value}</span>
-				{/each}
-			</div>
+		<h3 class="result-title">{result.title}</h3>
+		{#if result.subtitle}
+			<span class="result-subtitle">{result.subtitle}</span>
 		{/if}
 	</div>
 
+	<!-- Snippet -->
 	<p class="result-snippet">{result.snippet}</p>
 
-	<div class="result-relevance">
-		<svg width="12" height="12" viewBox="0 0 12 12" fill="none" class="relevance-icon">
-			<path d="M6 1L7.5 4L11 4.5L8.5 7L9 10.5L6 8.75L3 10.5L3.5 7L1 4.5L4.5 4L6 1Z" fill="currentColor"/>
+	<!-- Metadata Badges (if any) -->
+	{#if result.metadata && Object.keys(result.metadata).length > 0}
+		<div class="result-metadata">
+			{#each Object.entries(result.metadata) as [key, value]}
+				<span class="metadata-badge">
+					<span class="badge-label">{key}:</span>
+					<span class="badge-value">{value}</span>
+				</span>
+			{/each}
+		</div>
+	{/if}
+
+	<!-- Relevance Footer -->
+	<div class="result-footer">
+		<svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="relevance-icon">
+			<path d="M7 1L8.5 4.5L12 5L9.5 7.5L10 11L7 9L4 11L4.5 7.5L2 5L5.5 4.5L7 1Z" fill="currentColor"/>
 		</svg>
 		<span class="relevance-text">{result.relevanceReason}</span>
 	</div>
@@ -45,120 +51,130 @@
 
 <style>
 	.search-result-card {
-		background: var(--white);
-		border: 1px solid var(--gray-200);
-		border-radius: 8px;
-		padding: 16px;
-		margin-bottom: 12px;
+		background: #ffffff;
+		border: 1px solid #e5e7eb;
+		border-radius: 10px;
+		padding: 18px 20px;
+		margin-bottom: 10px;
 		cursor: pointer;
-		transition: all 0.2s ease;
+		transition: all 0.15s ease;
 	}
 
 	.search-result-card:hover {
-		border-color: var(--primary-500);
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+		border-color: #3b82f6;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 		transform: translateY(-1px);
 	}
 
-	.result-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		margin-bottom: 8px;
-		gap: 12px;
+	.search-result-card:active {
+		transform: translateY(0);
 	}
 
-	.result-title-section {
-		flex: 1;
-		min-width: 0;
+	/* Header Section */
+	.result-header {
+		margin-bottom: 10px;
 	}
 
 	.result-title {
-		font-size: 16px;
+		font-size: 17px;
 		font-weight: 600;
-		color: var(--gray-900);
+		color: #111827;
 		margin: 0 0 4px 0;
-		line-height: 1.4;
+		line-height: 1.3;
 	}
 
 	.result-subtitle {
+		display: inline-block;
 		font-size: 13px;
-		color: var(--gray-600);
+		color: #6b7280;
 		font-weight: 500;
+		background: #f3f4f6;
+		padding: 2px 10px;
+		border-radius: 6px;
 	}
 
+	/* Snippet */
+	.result-snippet {
+		font-size: 14px;
+		color: #374151;
+		line-height: 1.6;
+		margin: 0 0 12px 0;
+	}
+
+	/* Metadata Badges */
 	.result-metadata {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 6px;
-		align-items: flex-start;
+		gap: 8px;
+		margin-bottom: 12px;
 	}
 
 	.metadata-badge {
-		display: inline-block;
-		padding: 2px 8px;
-		background: var(--gray-100);
-		color: var(--gray-700);
-		border-radius: 4px;
-		font-size: 11px;
-		font-weight: 500;
-		white-space: nowrap;
-	}
-
-	.result-snippet {
-		font-size: 14px;
-		color: var(--gray-700);
-		line-height: 1.6;
-		margin: 0 0 12px 0;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.result-relevance {
-		display: flex;
+		display: inline-flex;
 		align-items: center;
-		gap: 6px;
+		gap: 4px;
+		padding: 4px 10px;
+		background: #f9fafb;
+		border: 1px solid #e5e7eb;
+		border-radius: 6px;
+		font-size: 12px;
+	}
+
+	.badge-label {
+		color: #6b7280;
+		font-weight: 500;
+	}
+
+	.badge-value {
+		color: #111827;
+		font-weight: 600;
+	}
+
+	/* Relevance Footer */
+	.result-footer {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
 		padding-top: 12px;
-		border-top: 1px solid var(--gray-100);
+		border-top: 1px solid #f3f4f6;
 	}
 
 	.relevance-icon {
-		color: var(--amber-500);
+		color: #f59e0b;
 		flex-shrink: 0;
+		margin-top: 2px;
 	}
 
 	.relevance-text {
 		font-size: 13px;
-		color: var(--gray-600);
+		color: #6b7280;
 		font-style: italic;
-		line-height: 1.4;
+		line-height: 1.5;
 	}
 
 	/* Keyboard navigation */
 	.search-result-card:focus {
-		outline: 2px solid var(--primary-500);
+		outline: 2px solid #3b82f6;
 		outline-offset: 2px;
 	}
 
 	/* Responsive adjustments */
 	@media (max-width: 640px) {
 		.search-result-card {
-			padding: 12px;
-		}
-
-		.result-header {
-			flex-direction: column;
-			gap: 8px;
+			padding: 14px 16px;
 		}
 
 		.result-title {
-			font-size: 15px;
+			font-size: 16px;
 		}
 
 		.result-snippet {
 			font-size: 13px;
+		}
+
+		.metadata-badge {
+			font-size: 11px;
+			padding: 3px 8px;
 		}
 	}
 </style>
