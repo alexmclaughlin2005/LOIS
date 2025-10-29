@@ -504,8 +504,10 @@ try {
 - ✅ Updated generate-query API (SQL generation)
 - ✅ Updated snowflake/nl-query API (2 instances)
 - ✅ Updated troubleshooting documentation
+- ✅ Commit 505c461 pushed to GitHub
 - ✅ **Issue #2: RESOLVED**
-- ⏳ Next: Test endpoints, commit and push changes
+- 🔍 Production deployment issue: Vercel still serving old model
+- ⏳ Triggering fresh deployment (2025-10-29 17:05:00 EST)
 
 ---
 
