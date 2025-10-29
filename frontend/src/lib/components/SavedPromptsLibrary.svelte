@@ -16,6 +16,7 @@
 	let selectedCategory: SavedPrompt['category'] | 'all' = 'all';
 	let searchQuery = '';
 	let showFavoritesOnly = false;
+	let expandedPromptId: string | null = null; // Track which prompt is expanded
 
 	// Load prompts from localStorage on mount
 	onMount(() => {
@@ -147,6 +148,10 @@
 		showCreation = false;
 		editingPrompt = null;
 	}
+
+	function toggleExpanded(promptId: string) {
+		expandedPromptId = expandedPromptId === promptId ? null : promptId;
+	}
 </script>
 
 <div class="library-overlay" on:click={onClose} role="presentation">
@@ -241,82 +246,83 @@
 						<p class="empty-hint">Try adjusting your search or filters</p>
 					</div>
 				{:else}
-					<div class="prompts-grid">
+					<div class="prompts-list">
 						{#each filteredPrompts as prompt (prompt.id)}
-							<div class="prompt-card">
-								<div class="card-header-row">
-									<div class="category-badge" style="--badge-color: {PROMPT_CATEGORIES[prompt.category].color}">
-										{PROMPT_CATEGORIES[prompt.category].label}
+							<div class="prompt-row" class:expanded={expandedPromptId === prompt.id}>
+								<!-- Main row -->
+								<div class="row-main">
+									<div class="row-left">
+										<button
+											class="favorite-btn-inline"
+											class:active={prompt.isFavorite}
+											on:click={() => handleToggleFavorite(prompt)}
+											aria-label={prompt.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+										>
+											<svg width="14" height="14" viewBox="0 0 14 14" fill={prompt.isFavorite ? '#FFD700' : 'none'}>
+												<path
+													d="M7 0.875L8.75 4.8125L13.125 5.25L10.0625 8.3125L10.9375 13.125L7 10.9375L3.0625 13.125L3.9375 8.3125L0.875 5.25L5.25 4.8125L7 0.875Z"
+													stroke="currentColor"
+													stroke-width="1.2"
+												/>
+											</svg>
+										</button>
+										<span class="category-pill" style="--pill-color: {PROMPT_CATEGORIES[prompt.category].color}">
+											{PROMPT_CATEGORIES[prompt.category].label}
+										</span>
+										<h3 class="row-title">{prompt.title}</h3>
 									</div>
-									<button
-										class="favorite-btn"
-										class:active={prompt.isFavorite}
-										on:click={() => handleToggleFavorite(prompt)}
-										aria-label={prompt.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-									>
-										<svg width="16" height="16" viewBox="0 0 16 16" fill={prompt.isFavorite ? '#FFD700' : 'none'}>
-											<path
-												d="M8 1L10 5.5L15 6L11.5 9.5L12.5 15L8 12.5L3.5 15L4.5 9.5L1 6L6 5.5L8 1Z"
-												stroke="currentColor"
-												stroke-width="1.5"
-											/>
+									<div class="row-right">
+										<span class="usage-badge">{prompt.usageCount} uses</span>
+										<button
+											class="expand-btn"
+											on:click={() => toggleExpanded(prompt.id)}
+											aria-label={expandedPromptId === prompt.id ? 'Collapse' : 'Expand'}
+										>
+											<svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="chevron" class:rotated={expandedPromptId === prompt.id}>
+												<path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+											</svg>
+										</button>
+									</div>
+								</div>
+
+								<!-- Prompt preview (always visible) -->
+								<div class="row-preview">
+									<code class="preview-text">{prompt.promptText}</code>
+								</div>
+
+								<!-- Expanded content -->
+								{#if expandedPromptId === prompt.id}
+									<div class="row-expanded">
+										{#if prompt.description}
+											<p class="expanded-description">{prompt.description}</p>
+										{/if}
+										{#if prompt.tags.length > 0}
+											<div class="expanded-tags">
+												{#each prompt.tags as tag}
+													<span class="tag-chip">{tag}</span>
+												{/each}
+											</div>
+										{/if}
+									</div>
+								{/if}
+
+								<!-- Actions row -->
+								<div class="row-actions">
+									<button class="action-btn-small edit" on:click={() => handleEditPrompt(prompt)} aria-label="Edit">
+										<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+											<path d="M9 1.5C9.16667 1.33333 9.38333 1.25 9.65 1.25C9.91667 1.25 10.1333 1.33333 10.3 1.5L10.5 1.7C10.6667 1.86667 10.75 2.08333 10.75 2.35C10.75 2.61667 10.6667 2.83333 10.5 3L3.5 10L1 11L2 8.5L9 1.5Z" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
 										</svg>
+										Edit
 									</button>
-								</div>
-
-								<h3 class="card-title">{prompt.title}</h3>
-								{#if prompt.description}
-									<p class="card-description">{prompt.description}</p>
-								{/if}
-
-								<div class="card-prompt">
-									<code>{prompt.promptText}</code>
-								</div>
-
-								{#if prompt.tags.length > 0}
-									<div class="card-tags">
-										{#each prompt.tags as tag}
-											<span class="tag">{tag}</span>
-										{/each}
-									</div>
-								{/if}
-
-								<div class="card-footer">
-									<div class="usage-count">
-										<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-											<path d="M7 1V7H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-											<circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+									<button class="action-btn-small delete" on:click={() => handleDeletePrompt(prompt)} aria-label="Delete">
+										<svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+											<path d="M1.5 3H10.5M4.5 5.25V9M7.5 5.25V9M2.25 3L3 10.5C3 10.7 3.1 10.875 3.25 11C3.4 11.125 3.575 11.25 3.75 11.25H8.25C8.425 11.25 8.6 11.125 8.75 11C8.9 10.875 9 10.7 9 10.5L9.75 3M4.5 3V1.5C4.5 1.3 4.6 1.125 4.75 1C4.9 0.875 5.075 0.75 5.25 0.75H6.75C6.925 0.75 7.1 0.875 7.25 1C7.4 1.125 7.5 1.3 7.5 1.5V3" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
 										</svg>
-										{prompt.usageCount} uses
-									</div>
-
-									<div class="card-actions">
-										<button class="action-btn" on:click={() => handleEditPrompt(prompt)} aria-label="Edit">
-											<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-												<path
-													d="M10.333 1.667C10.5081 1.49189 10.716 1.353 10.9447 1.25824C11.1735 1.16348 11.4187 1.1147 11.6663 1.1147C11.914 1.1147 12.1592 1.16348 12.3879 1.25824C12.6167 1.353 12.8246 1.49189 12.9997 1.667C13.1748 1.84211 13.3137 2.04998 13.4084 2.27876C13.5032 2.50753 13.552 2.75273 13.552 3.00035C13.552 3.24797 13.5032 3.49317 13.4084 3.72194C13.3137 3.95072 13.1748 4.15859 12.9997 4.3337L4.66634 12.667L1.33301 13.667L2.33301 10.3337L10.6663 2.00035L10.333 1.667Z"
-													stroke="currentColor"
-													stroke-width="1.2"
-													stroke-linecap="round"
-													stroke-linejoin="round"
-												/>
-											</svg>
-										</button>
-										<button class="action-btn delete" on:click={() => handleDeletePrompt(prompt)} aria-label="Delete">
-											<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-												<path
-													d="M1.75 3.5H12.25M5.25 6.125V10.5M8.75 6.125V10.5M2.625 3.5L3.5 12.25C3.5 12.4821 3.59219 12.7046 3.75628 12.8687C3.92038 13.0328 4.14294 13.125 4.375 13.125H9.625C9.85706 13.125 10.0796 13.0328 10.2437 12.8687C10.4078 12.7046 10.5 12.4821 10.5 12.25L11.375 3.5M5.25 3.5V1.75C5.25 1.51794 5.34219 1.29538 5.50628 1.13128C5.67038 0.967187 5.89294 0.875 6.125 0.875H7.875C8.10706 0.875 8.32962 0.967187 8.49372 1.13128C8.65781 1.29538 8.75 1.51794 8.75 1.75V3.5"
-													stroke="currentColor"
-													stroke-width="1.2"
-													stroke-linecap="round"
-													stroke-linejoin="round"
-												/>
-											</svg>
-										</button>
-										<button class="btn-use" on:click={() => handleUsePrompt(prompt)}>
-											Use Prompt
-										</button>
-									</div>
+										Delete
+									</button>
+									<button class="btn-use-compact" on:click={() => handleUsePrompt(prompt)}>
+										Use Prompt
+									</button>
 								</div>
 							</div>
 						{/each}
@@ -554,107 +560,189 @@
 		margin: 0;
 	}
 
-	.prompts-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-		gap: 16px;
+	/* Compact List Styles */
+	.prompts-list {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
 	}
 
-	.prompt-card {
+	.prompt-row {
 		background: white;
 		border: 1px solid #E5E5E5;
 		border-radius: 8px;
-		padding: 16px;
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
+		padding: 12px 16px;
 		transition: all 0.15s;
 	}
 
-	.prompt-card:hover {
+	.prompt-row:hover {
 		border-color: #D0D0D0;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 	}
 
-	.card-header-row {
+	.prompt-row.expanded {
+		border-color: #161616;
+	}
+
+	/* Main row */
+	.row-main {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		gap: 12px;
+		margin-bottom: 8px;
 	}
 
-	.category-badge {
-		padding: 4px 10px;
-		font-size: 11px;
-		font-weight: 600;
-		color: white;
-		background: var(--badge-color);
-		border-radius: 12px;
-		text-transform: uppercase;
-		letter-spacing: 0.3px;
-	}
-
-	.favorite-btn {
+	.row-left {
 		display: flex;
 		align-items: center;
-		justify-content: center;
-		width: 28px;
-		height: 28px;
+		gap: 10px;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.favorite-btn-inline {
+		flex-shrink: 0;
+		width: 24px;
+		height: 24px;
 		padding: 0;
 		background: transparent;
 		border: none;
 		color: #D0D0D0;
 		cursor: pointer;
-		border-radius: 4px;
+		font-size: 16px;
 		transition: all 0.15s;
 	}
 
-	.favorite-btn:hover {
-		background: #F4F4F4;
+	.favorite-btn-inline:hover {
+		color: #FFD700;
+		transform: scale(1.1);
+	}
+
+	.favorite-btn-inline.active {
 		color: #FFD700;
 	}
 
-	.favorite-btn.active {
-		color: #FFD700;
+	.category-pill {
+		flex-shrink: 0;
+		padding: 3px 8px;
+		font-size: 10px;
+		font-weight: 600;
+		color: white;
+		background: var(--pill-color);
+		border-radius: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.3px;
 	}
 
-	.card-title {
-		font-size: 16px;
+	.row-title {
+		flex: 1;
+		font-size: 14px;
 		font-weight: 600;
 		color: #161616;
 		margin: 0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
-	.card-description {
-		font-size: 13px;
+	.row-right {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		flex-shrink: 0;
+	}
+
+	.usage-badge {
+		font-size: 11px;
 		color: #6F6F6F;
-		line-height: 1.5;
-		margin: 0;
+		background: #F4F4F4;
+		padding: 3px 8px;
+		border-radius: 10px;
 	}
 
-	.card-prompt {
+	.expand-btn {
+		width: 24px;
+		height: 24px;
+		padding: 0;
+		background: transparent;
+		border: none;
+		color: #6F6F6F;
+		cursor: pointer;
+		font-size: 12px;
+		transition: all 0.15s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.expand-btn:hover {
+		background: #F4F4F4;
+		color: #161616;
+		border-radius: 4px;
+	}
+
+	.prompt-row.expanded .expand-btn {
+		transform: rotate(180deg);
+	}
+
+	/* Preview row (always visible) */
+	.row-preview {
 		background: #F4F4F4;
 		border-radius: 6px;
-		padding: 10px 12px;
-		font-size: 13px;
-		line-height: 1.5;
-		max-height: 80px;
-		overflow-y: auto;
+		padding: 8px 12px;
+		margin-bottom: 8px;
+		max-height: 60px;
+		overflow: hidden;
 	}
 
-	.card-prompt code {
+	.preview-text {
+		font-size: 12px;
+		line-height: 1.4;
 		color: #161616;
 		font-family: 'SF Mono', Monaco, Consolas, monospace;
 		white-space: pre-wrap;
 		word-break: break-word;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
-	.card-tags {
+	/* Expanded section */
+	.row-expanded {
+		padding: 12px 0;
+		border-top: 1px solid #E5E5E5;
+		margin-bottom: 8px;
+		animation: slideDown 0.2s ease-out;
+	}
+
+	@keyframes slideDown {
+		from {
+			opacity: 0;
+			max-height: 0;
+		}
+		to {
+			opacity: 1;
+			max-height: 300px;
+		}
+	}
+
+	.expanded-description {
+		font-size: 13px;
+		color: #6F6F6F;
+		line-height: 1.5;
+		margin: 0 0 12px 0;
+	}
+
+	.expanded-tags {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 6px;
 	}
 
-	.tag {
+	.tag-chip {
 		padding: 3px 8px;
 		font-size: 11px;
 		color: #6F6F6F;
@@ -662,57 +750,43 @@
 		border-radius: 10px;
 	}
 
-	.card-footer {
+	/* Actions row */
+	.row-actions {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: flex-end;
+		gap: 8px;
 		padding-top: 8px;
 		border-top: 1px solid #E5E5E5;
-		margin-top: auto;
 	}
 
-	.usage-count {
-		display: flex;
-		align-items: center;
-		gap: 4px;
+	.action-btn-small {
+		padding: 5px 10px;
 		font-size: 12px;
+		font-weight: 500;
 		color: #6F6F6F;
-	}
-
-	.card-actions {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-	}
-
-	.action-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 28px;
-		height: 28px;
-		padding: 0;
 		background: transparent;
-		border: none;
-		color: #6F6F6F;
-		cursor: pointer;
+		border: 1px solid #E5E5E5;
 		border-radius: 4px;
+		cursor: pointer;
 		transition: all 0.15s;
 	}
 
-	.action-btn:hover {
+	.action-btn-small:hover {
 		background: #F4F4F4;
 		color: #161616;
+		border-color: #D0D0D0;
 	}
 
-	.action-btn.delete:hover {
+	.action-btn-small.delete:hover {
 		background: #FFF1F1;
 		color: #DA1E28;
+		border-color: #DA1E28;
 	}
 
-	.btn-use {
-		padding: 6px 12px;
-		font-size: 13px;
+	.btn-use-compact {
+		padding: 5px 14px;
+		font-size: 12px;
 		font-weight: 500;
 		color: white;
 		background: #161616;
@@ -722,7 +796,7 @@
 		transition: background 0.15s;
 	}
 
-	.btn-use:hover {
+	.btn-use-compact:hover {
 		background: #2D2D2D;
 	}
 </style>
