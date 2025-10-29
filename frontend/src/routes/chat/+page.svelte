@@ -11,6 +11,7 @@
 	import ResultsRenderer from '$lib/components/results/ResultsRenderer.svelte';
 	import SavedPromptsLibrary from '$lib/components/SavedPromptsLibrary.svelte';
 	import ChatHistoryList from '$lib/components/ChatHistoryList.svelte';
+	import SearchResultCard from '$lib/components/SearchResultCard.svelte';
 	import { testConnection } from '$lib/supabase';
 	import { getOpenPersonalInjuryCases, getCasesWithHighMedicalExpenses } from '$lib/queries';
 	import { routeQuery, formatResultForDisplay } from '$lib/queryRouter';
@@ -35,6 +36,16 @@
 			subtitle: string;
 			data: Array<Record<string, any>>;
 		};
+		searchResults?: Array<{
+			id: string;
+			type: string;
+			title: string;
+			subtitle?: string;
+			snippet: string;
+			relevanceReason: string;
+			relevanceScore: number;
+			metadata?: Record<string, any>;
+		}>;
 		sqlQuery?: string; // The SQL query that was executed (optional)
 		showActionButton?: boolean;
 		actionButtonText?: string;
@@ -91,7 +102,7 @@
 	let sessionTitle: string = 'New Chat';
 
 	// Data source for queries
-	let dataSource: 'documents' | 'snowflake' | 'cortex' = 'documents';
+	let dataSource: 'documents' | 'snowflake' | 'cortex' | 'search' = 'documents';
 
 	// Test database connection on mount
 	onMount(async () => {
@@ -545,6 +556,65 @@
 				demoState = 'awaiting_followup';
 				return;
 			}
+		}
+
+		// Handle Search mode - returns ranked search results with relevance reasoning
+		if (dataSource === 'search') {
+			try {
+				// Get selected org_id from localStorage
+				const selectedOrgId = localStorage.getItem('selectedOrgId');
+
+				const response = await fetch('/api/search', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						query: userMessage,
+						orgId: selectedOrgId
+					})
+				});
+
+				const result = await response.json();
+
+				if (result.success && result.results.length > 0) {
+					// Add assistant message with search results
+					messages = [
+						...messages,
+						{
+							role: 'assistant',
+							content: `Found ${result.totalResults} relevant ${result.totalResults === 1 ? 'result' : 'results'} for your search.`,
+							searchResults: result.results
+						}
+					];
+				} else if (result.success && result.results.length === 0) {
+					messages = [
+						...messages,
+						{
+							role: 'assistant',
+							content: `I couldn't find any relevant results for "${userMessage}". Try searching with different keywords or check the spelling.`
+						}
+					];
+				} else {
+					messages = [
+						...messages,
+						{
+							role: 'assistant',
+							content: `I encountered an error: ${result.error}`
+						}
+					];
+				}
+			} catch (error: any) {
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						content: `Error executing search: ${error.message}`
+					}
+				];
+			}
+
+			isThinking = false;
+			inputValue = '';
+			return;
 		}
 
 		// Handle Snowflake queries (Claude-based NL-to-SQL)
@@ -1131,6 +1201,14 @@
 											<pre class="sql-query-code"><code>{message.sqlQuery}</code></pre>
 										</details>
 									{/if}
+									{#if message.searchResults && message.searchResults.length > 0}
+										<!-- Search Results: Show card-based results with relevance reasoning -->
+										<div class="search-results-container">
+											{#each message.searchResults as result}
+												<SearchResultCard {result} />
+											{/each}
+										</div>
+									{/if}
 									{#if message.hasStructuredData && message.structuredData}
 										{#if message.structuredData.data.length === 1}
 											<!-- Single result: Show full card inline -->
@@ -1219,6 +1297,17 @@
 				<div class="input-wrapper">
 				<div class="data-source-toggle-container">
 					<div class="data-source-toggle">
+						<button
+							class="toggle-button"
+							class:active={dataSource === 'search'}
+							on:click={() => dataSource = 'search'}
+						>
+							<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+								<circle cx="6" cy="6" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+								<path d="M8.5 8.5L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+							</svg>
+							Search
+						</button>
 						<button
 							class="toggle-button"
 							class:active={dataSource === 'documents'}
@@ -1929,6 +2018,12 @@
 
 	.toggle-button svg {
 		flex-shrink: 0;
+	}
+
+	/* Search Results Container */
+	.search-results-container {
+		margin-top: 16px;
+		max-width: 100%;
 	}
 
 	@media (max-width: 768px) {

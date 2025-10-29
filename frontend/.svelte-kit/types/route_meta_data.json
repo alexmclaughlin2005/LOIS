@@ -22,6 +22,9 @@
 	"/api/generate-response": [
 		"src/routes/api/generate-response/+server.ts"
 	],
+	"/api/search": [
+		"src/routes/api/search/+server.ts"
+	],
 	"/api/snowflake/cortex-analyst": [
 		"src/routes/api/snowflake/cortex-analyst/+server.ts"
 	],
