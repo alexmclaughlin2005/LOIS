@@ -487,6 +487,164 @@
 		];
 	}
 
+	// === INTELLIGENT ROUTING HANDLERS ===
+
+	async function handleSearchQuery(query: string) {
+		try {
+			const selectedOrgId = localStorage.getItem('selectedOrgId');
+
+			const response = await fetch('/api/search', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: query,
+					orgId: selectedOrgId
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.success && result.results.length > 0) {
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						content: `Found ${result.totalResults} relevant ${result.totalResults === 1 ? 'result' : 'results'} for your search.`,
+						searchResults: result.results
+					}
+				];
+			} else if (result.success && result.results.length === 0) {
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						content: `I couldn't find any relevant results for "${query}". Try searching with different keywords or check the spelling.`
+					}
+				];
+			} else {
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						content: `I encountered an error: ${result.error}`
+					}
+				];
+			}
+		} catch (error: any) {
+			messages = [
+				...messages,
+				{
+					role: 'assistant',
+					content: `Error executing search: ${error.message}`
+				}
+			];
+		} finally {
+			isThinking = false;
+		}
+	}
+
+	async function handleListQuery(query: string) {
+		try {
+			const selectedOrgId = localStorage.getItem('selectedOrgId');
+
+			const response = await fetch('/api/snowflake/nl-query', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					question: query,
+					schemaContext: SNOWFLAKE_SCHEMA_CONTEXT,
+					orgId: selectedOrgId
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						content: result.summary,
+						sqlQuery: result.sql,
+						hasStructuredData: result.results.length > 0,
+						structuredData: {
+							title: 'Query Results',
+							subtitle: `${result.rowCount} rows returned`,
+							data: result.results
+						}
+					}
+				];
+			} else {
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						content: `I encountered an error: ${result.error}`
+					}
+				];
+			}
+		} catch (error: any) {
+			messages = [
+				...messages,
+				{
+					role: 'assistant',
+					content: `Error querying database: ${error.message}`
+				}
+			];
+		} finally {
+			isThinking = false;
+		}
+	}
+
+	async function handleConversationalQuery(query: string) {
+		try {
+			// Build conversation history for context
+			const conversationHistory = messages.map(msg => ({
+				role: msg.role,
+				content: msg.content
+			}));
+
+			const response = await fetch('/api/conversational-chat', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: query,
+					conversationHistory: conversationHistory
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						content: result.response
+					}
+				];
+			} else {
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						content: `I encountered an error: ${result.error}`
+					}
+				];
+			}
+		} catch (error: any) {
+			messages = [
+				...messages,
+				{
+					role: 'assistant',
+					content: `Error processing your question: ${error.message}`
+				}
+			];
+		} finally {
+			isThinking = false;
+		}
+	}
+
 	async function sendMessage() {
 		if (!inputValue.trim()) return;
 
@@ -559,7 +717,49 @@
 			}
 		}
 
-		// Handle Search mode - returns ranked search results with relevance reasoning
+		// === INTELLIGENT ROUTING ===
+		// Classify the query using LLM to determine intent
+		console.log('🤖 Classifying query:', userMessage);
+		let queryType: 'search' | 'list' | 'conversational' = 'conversational';
+
+		try {
+			const classifyResponse = await fetch('/api/classify-query', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ query: userMessage })
+			});
+
+			const classification = await classifyResponse.json();
+
+			if (classification.success) {
+				queryType = classification.type;
+				console.log(`✅ Classified as: ${queryType} (confidence: ${classification.confidence})`);
+				console.log(`💭 Reasoning: ${classification.reasoning}`);
+			} else {
+				console.warn('⚠️ Classification failed, defaulting to conversational');
+			}
+		} catch (error) {
+			console.error('❌ Error classifying query:', error);
+			// Default to conversational on error
+		}
+
+		// Route based on classification
+		if (queryType === 'search') {
+			// === SEARCH ROUTING ===
+			await handleSearchQuery(userMessage);
+			return;
+		} else if (queryType === 'list') {
+			// === LIST ROUTING ===
+			await handleListQuery(userMessage);
+			return;
+		} else if (queryType === 'conversational') {
+			// === CONVERSATIONAL ROUTING ===
+			await handleConversationalQuery(userMessage);
+			return;
+		}
+
+		// Fallback: Handle old manual data source selection
+		// (This code below is kept for backward compatibility but should rarely be used)
 		if (dataSource === 'search') {
 			try {
 				// Get selected org_id from localStorage
