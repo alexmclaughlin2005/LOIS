@@ -5,6 +5,8 @@
 	export let onRunRoutine: (routine: Routine) => void = () => {};
 
 	let searchQuery = '';
+	let showRoutineEditor = false;
+	let editingRoutine: Routine | null = null;
 
 	// Promoted routines data
 	const promotedRoutines: Routine[] = [
@@ -75,6 +77,28 @@
 		}
 		expandedRoutines = expandedRoutines; // Trigger reactivity
 	}
+
+	function createNewRoutine() {
+		editingRoutine = null;
+		showRoutineEditor = true;
+	}
+
+	function editRoutine(routine: Routine) {
+		editingRoutine = routine;
+		showRoutineEditor = true;
+	}
+
+	function closeEditor() {
+		showRoutineEditor = false;
+		editingRoutine = null;
+	}
+
+	function saveRoutine(routine: Routine) {
+		// In a real app, this would save to a database
+		console.log('Saving routine:', routine);
+		alert(`Routine "${routine.name}" saved! (This is a demo - actual save functionality would persist to database)`);
+		closeEditor();
+	}
 </script>
 
 <div class="routines-library">
@@ -93,7 +117,7 @@
 			<span>Routines Library</span>
 		</div>
 		<div class="header-actions">
-			<button class="btn-create">
+			<button class="btn-create" on:click={createNewRoutine}>
 				<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
 					<path
 						d="M8 3V13M3 8H13"
@@ -274,7 +298,7 @@
 								</svg>
 								Run
 							</button>
-							<button class="btn-icon" title="Edit">
+							<button class="btn-icon" on:click={() => editRoutine(routine)} title="Edit">
 								<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
 									<path
 										d="M11.333 2.00004C11.5081 1.82494 11.716 1.68605 11.9447 1.59129C12.1735 1.49653 12.4187 1.44775 12.6663 1.44775C12.914 1.44775 13.1592 1.49653 13.3879 1.59129C13.6167 1.68605 13.8246 1.82494 13.9997 2.00004C14.1748 2.17513 14.3137 2.383 14.4084 2.61178C14.5032 2.84055 14.552 3.08575 14.552 3.33337C14.552 3.58099 14.5032 3.82619 14.4084 4.05497C14.3137 4.28374 14.1748 4.49161 13.9997 4.66671L5.33301 13.3334L2.66634 14L3.33301 11.3334L11.9997 2.66671L11.333 2.00004Z"
@@ -292,6 +316,72 @@
 		</div>
 	</div>
 </div>
+
+<!-- Routine Editor Modal -->
+{#if showRoutineEditor}
+	<div class="modal-overlay" on:click={closeEditor}>
+		<div class="modal-content" on:click|stopPropagation>
+			<div class="modal-header">
+				<h2>{editingRoutine ? 'Edit Routine' : 'Create New Routine'}</h2>
+				<button class="btn-close-modal" on:click={closeEditor}>
+					<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+						<path
+							d="M6 6L14 14M6 14L14 6"
+							stroke="currentColor"
+							stroke-width="1.5"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
+					</svg>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div class="form-group">
+					<label for="routine-name">Routine Name</label>
+					<input
+						id="routine-name"
+						type="text"
+						placeholder="Enter routine name"
+						value={editingRoutine?.name || ''}
+						class="form-input"
+					/>
+				</div>
+				<div class="form-group">
+					<label for="routine-description">Description</label>
+					<textarea
+						id="routine-description"
+						placeholder="Describe what this routine does"
+						value={editingRoutine?.description || ''}
+						rows="4"
+						class="form-textarea"
+					/>
+				</div>
+				<div class="form-group">
+					<label for="routine-schedule">Schedule</label>
+					<input
+						id="routine-schedule"
+						type="text"
+						placeholder="e.g., Daily at 9am, Every Monday"
+						value={editingRoutine?.schedule || ''}
+						class="form-input"
+					/>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button class="btn-cancel" on:click={closeEditor}>Cancel</button>
+				<button class="btn-save" on:click={() => saveRoutine({
+					id: editingRoutine?.id || Math.random().toString(),
+					name: (document.getElementById('routine-name') as HTMLInputElement)?.value || '',
+					description: (document.getElementById('routine-description') as HTMLTextAreaElement)?.value || '',
+					schedule: (document.getElementById('routine-schedule') as HTMLInputElement)?.value || '',
+					lastRun: 'Never'
+				})}>
+					{editingRoutine ? 'Save Changes' : 'Create Routine'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	.routines-library {
@@ -719,5 +809,145 @@
 	.btn-icon:hover {
 		background: #F4F4F4;
 		border-color: #525252;
+	}
+
+	/* Modal Styles */
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+	}
+
+	.modal-content {
+		background: white;
+		border-radius: 12px;
+		width: 90%;
+		max-width: 500px;
+		box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+	}
+
+	.modal-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 24px 24px 16px;
+		border-bottom: 1px solid #E0E0E0;
+	}
+
+	.modal-header h2 {
+		margin: 0;
+		font-size: 20px;
+		font-weight: 600;
+		color: #1a1a1a;
+	}
+
+	.btn-close-modal {
+		background: transparent;
+		border: none;
+		color: #8D8D8D;
+		cursor: pointer;
+		padding: 4px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 4px;
+		transition: all 0.15s;
+	}
+
+	.btn-close-modal:hover {
+		background: #F4F4F4;
+		color: #525252;
+	}
+
+	.modal-body {
+		padding: 24px;
+	}
+
+	.form-group {
+		margin-bottom: 20px;
+	}
+
+	.form-group:last-child {
+		margin-bottom: 0;
+	}
+
+	.form-group label {
+		display: block;
+		font-size: 13px;
+		font-weight: 600;
+		color: #1a1a1a;
+		margin-bottom: 8px;
+	}
+
+	.form-input,
+	.form-textarea {
+		width: 100%;
+		padding: 10px 12px;
+		font-size: 14px;
+		border: 1px solid #E0E0E0;
+		border-radius: 8px;
+		font-family: 'Helvetica Now Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		transition: all 0.15s;
+	}
+
+	.form-input:focus,
+	.form-textarea:focus {
+		outline: none;
+		border-color: #525252;
+		box-shadow: 0 0 0 3px rgba(82, 82, 82, 0.1);
+	}
+
+	.form-textarea {
+		resize: vertical;
+		min-height: 80px;
+	}
+
+	.modal-footer {
+		display: flex;
+		justify-content: flex-end;
+		gap: 12px;
+		padding: 16px 24px 24px;
+		border-top: 1px solid #E0E0E0;
+	}
+
+	.btn-cancel {
+		padding: 10px 20px;
+		font-size: 14px;
+		font-weight: 500;
+		background: transparent;
+		border: 1px solid #E0E0E0;
+		border-radius: 8px;
+		color: #525252;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.btn-cancel:hover {
+		background: #F4F4F4;
+		border-color: #525252;
+	}
+
+	.btn-save {
+		padding: 10px 20px;
+		font-size: 14px;
+		font-weight: 500;
+		background: #1a1a1a;
+		border: 1px solid #1a1a1a;
+		border-radius: 8px;
+		color: white;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.btn-save:hover {
+		background: #000000;
+		border-color: #000000;
 	}
 </style>
