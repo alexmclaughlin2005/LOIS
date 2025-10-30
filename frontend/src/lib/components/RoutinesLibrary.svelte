@@ -8,6 +8,16 @@
 	let showRoutineEditor = false;
 	let editingRoutine: Routine | null = null;
 
+	// Form state for routine editor
+	let routineName = '';
+	let routineDescription = '';
+	let repeatFrequency: 'one-time' | 'daily' | 'weekly' | 'monthly' = 'weekly';
+	let everyInterval = 2;
+	let selectedDays = new Set<string>(['tue']);
+	let selectedTime = '2:30 PM';
+	let routineType: 'prompt' | 'sql' = 'prompt';
+	let routinePrompt = '';
+
 	// Promoted routines data
 	const promotedRoutines: Routine[] = [
 		{
@@ -80,11 +90,24 @@
 
 	function createNewRoutine() {
 		editingRoutine = null;
+		// Reset form state
+		routineName = '';
+		routineDescription = '';
+		repeatFrequency = 'weekly';
+		everyInterval = 2;
+		selectedDays = new Set(['tue']);
+		selectedTime = '2:30 PM';
+		routineType = 'prompt';
+		routinePrompt = '';
 		showRoutineEditor = true;
 	}
 
 	function editRoutine(routine: Routine) {
 		editingRoutine = routine;
+		// Populate form with routine data
+		routineName = routine.name;
+		routineDescription = routine.description || '';
+		routinePrompt = '';
 		showRoutineEditor = true;
 	}
 
@@ -93,11 +116,31 @@
 		editingRoutine = null;
 	}
 
-	function saveRoutine(routine: Routine) {
-		// In a real app, this would save to a database
+	function saveRoutine() {
+		const routine: Routine = {
+			id: editingRoutine?.id || Math.random().toString(),
+			name: routineName,
+			description: routineDescription,
+			schedule: `${repeatFrequency === 'weekly' ? 'Every ' + everyInterval + ' weeks on ' + Array.from(selectedDays).join(', ') : repeatFrequency} at ${selectedTime}`,
+			lastRun: editingRoutine?.lastRun || 'Never'
+		};
+
 		console.log('Saving routine:', routine);
 		alert(`Routine "${routine.name}" saved! (This is a demo - actual save functionality would persist to database)`);
 		closeEditor();
+	}
+
+	function toggleDay(day: string) {
+		if (selectedDays.has(day)) {
+			selectedDays.delete(day);
+		} else {
+			selectedDays.add(day);
+		}
+		selectedDays = selectedDays; // Trigger reactivity
+	}
+
+	function testPrompt() {
+		alert(`Testing prompt:\n${routinePrompt}`);
 	}
 </script>
 
@@ -337,45 +380,175 @@
 			</div>
 			<div class="modal-body">
 				<div class="form-group">
-					<label for="routine-name">Routine Name</label>
 					<input
-						id="routine-name"
 						type="text"
-						placeholder="Enter routine name"
-						value={editingRoutine?.name || ''}
-						class="form-input"
+						placeholder="New Routine"
+						bind:value={routineName}
+						class="form-input routine-title-input"
 					/>
 				</div>
 				<div class="form-group">
-					<label for="routine-description">Description</label>
+					<input
+						type="text"
+						placeholder="My routine's description"
+						bind:value={routineDescription}
+						class="form-input routine-description-input"
+					/>
+				</div>
+
+				<!-- Repeat Frequency -->
+				<div class="form-group">
+					<label class="form-label-caps">REPEAT</label>
+					<div class="button-group">
+						<button
+							type="button"
+							class="btn-option"
+							class:active={repeatFrequency === 'one-time'}
+							on:click={() => repeatFrequency = 'one-time'}
+						>
+							One Time
+						</button>
+						<button
+							type="button"
+							class="btn-option"
+							class:active={repeatFrequency === 'daily'}
+							on:click={() => repeatFrequency = 'daily'}
+						>
+							Daily
+						</button>
+						<button
+							type="button"
+							class="btn-option"
+							class:active={repeatFrequency === 'weekly'}
+							on:click={() => repeatFrequency = 'weekly'}
+						>
+							Weekly
+						</button>
+						<button
+							type="button"
+							class="btn-option"
+							class:active={repeatFrequency === 'monthly'}
+							on:click={() => repeatFrequency = 'monthly'}
+						>
+							Monthly
+						</button>
+					</div>
+				</div>
+
+				<!-- Every Interval -->
+				{#if repeatFrequency === 'weekly'}
+					<div class="form-group">
+						<label class="form-label-caps">EVERY</label>
+						<select bind:value={everyInterval} class="form-select">
+							<option value={1}>1 Week</option>
+							<option value={2}>2 Weeks</option>
+							<option value={3}>3 Weeks</option>
+							<option value={4}>4 Weeks</option>
+						</select>
+					</div>
+
+					<!-- Day Selection -->
+					<div class="form-group">
+						<label class="form-label-caps">ON</label>
+						<div class="button-group">
+							{#each [
+								{ key: 'sun', label: 'Sun' },
+								{ key: 'mon', label: 'Mon' },
+								{ key: 'tue', label: 'Tue' },
+								{ key: 'wed', label: 'Wed' },
+								{ key: 'thu', label: 'Thu' },
+								{ key: 'fri', label: 'Fri' },
+								{ key: 'sat', label: 'Sat' }
+							] as day}
+								<button
+									type="button"
+									class="btn-option"
+									class:active={selectedDays.has(day.key)}
+									on:click={() => toggleDay(day.key)}
+								>
+									{day.label}
+								</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				<!-- Time Selection -->
+				<div class="form-group">
+					<label class="form-label-caps">AT</label>
+					<select bind:value={selectedTime} class="form-select">
+						<option>12:00 AM</option>
+						<option>1:00 AM</option>
+						<option>2:00 AM</option>
+						<option>3:00 AM</option>
+						<option>4:00 AM</option>
+						<option>5:00 AM</option>
+						<option>6:00 AM</option>
+						<option>7:00 AM</option>
+						<option>8:00 AM</option>
+						<option>9:00 AM</option>
+						<option>10:00 AM</option>
+						<option>11:00 AM</option>
+						<option>12:00 PM</option>
+						<option>1:00 PM</option>
+						<option>2:00 PM</option>
+						<option>2:30 PM</option>
+						<option>3:00 PM</option>
+						<option>4:00 PM</option>
+						<option>5:00 PM</option>
+						<option>6:00 PM</option>
+						<option>7:00 PM</option>
+						<option>8:00 PM</option>
+						<option>9:00 PM</option>
+						<option>10:00 PM</option>
+						<option>11:00 PM</option>
+					</select>
+				</div>
+
+				<!-- Type Selection -->
+				<div class="form-group">
+					<label class="form-label-caps">TYPE</label>
+					<div class="button-group">
+						<button
+							type="button"
+							class="btn-option"
+							class:active={routineType === 'prompt'}
+							on:click={() => routineType = 'prompt'}
+						>
+							Prompt
+						</button>
+						<button
+							type="button"
+							class="btn-option"
+							class:active={routineType === 'sql'}
+							on:click={() => routineType = 'sql'}
+						>
+							SQL Query
+						</button>
+					</div>
+				</div>
+
+				<!-- Prompt/SQL Query Input -->
+				<div class="form-group">
+					<label class="form-label-caps">{routineType === 'prompt' ? 'PROMPT' : 'SQL QUERY'}</label>
 					<textarea
-						id="routine-description"
-						placeholder="Describe what this routine does"
-						value={editingRoutine?.description || ''}
-						rows="4"
-						class="form-textarea"
+						bind:value={routinePrompt}
+						placeholder="Placeholder"
+						rows="8"
+						class="form-textarea routine-prompt-textarea"
 					/>
 				</div>
+
+				<!-- Test Prompt Button -->
 				<div class="form-group">
-					<label for="routine-schedule">Schedule</label>
-					<input
-						id="routine-schedule"
-						type="text"
-						placeholder="e.g., Daily at 9am, Every Monday"
-						value={editingRoutine?.schedule || ''}
-						class="form-input"
-					/>
+					<button type="button" class="btn-test-prompt" on:click={testPrompt}>
+						Test Prompt
+					</button>
 				</div>
 			</div>
 			<div class="modal-footer">
 				<button class="btn-cancel" on:click={closeEditor}>Cancel</button>
-				<button class="btn-save" on:click={() => saveRoutine({
-					id: editingRoutine?.id || Math.random().toString(),
-					name: (document.getElementById('routine-name') as HTMLInputElement)?.value || '',
-					description: (document.getElementById('routine-description') as HTMLTextAreaElement)?.value || '',
-					schedule: (document.getElementById('routine-schedule') as HTMLInputElement)?.value || '',
-					lastRun: 'Never'
-				})}>
+				<button class="btn-save" on:click={saveRoutine}>
 					{editingRoutine ? 'Save Changes' : 'Create Routine'}
 				</button>
 			</div>
@@ -868,6 +1041,8 @@
 
 	.modal-body {
 		padding: 24px;
+		max-height: 70vh;
+		overflow-y: auto;
 	}
 
 	.form-group {
@@ -884,6 +1059,16 @@
 		font-weight: 600;
 		color: #1a1a1a;
 		margin-bottom: 8px;
+	}
+
+	.form-label-caps {
+		display: block;
+		font-size: 11px;
+		font-weight: 600;
+		color: #8D8D8D;
+		letter-spacing: 0.5px;
+		margin-bottom: 8px;
+		text-transform: uppercase;
 	}
 
 	.form-input,
@@ -949,5 +1134,99 @@
 	.btn-save:hover {
 		background: #000000;
 		border-color: #000000;
+	}
+
+	/* New Form Styles */
+	.routine-title-input {
+		font-size: 24px;
+		font-weight: 600;
+		border: none;
+		padding: 0;
+		margin-bottom: 8px;
+	}
+
+	.routine-title-input:focus {
+		outline: none;
+		box-shadow: none;
+	}
+
+	.routine-description-input {
+		font-size: 14px;
+		color: #8D8D8D;
+		border: none;
+		padding: 0;
+	}
+
+	.routine-description-input:focus {
+		outline: none;
+		box-shadow: none;
+	}
+
+	.button-group {
+		display: flex;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+
+	.btn-option {
+		padding: 8px 16px;
+		font-size: 14px;
+		font-weight: 500;
+		background: white;
+		border: 1px solid #E0E0E0;
+		border-radius: 8px;
+		color: #525252;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.btn-option:hover {
+		border-color: #525252;
+	}
+
+	.btn-option.active {
+		background: #1a1a1a;
+		border-color: #1a1a1a;
+		color: white;
+	}
+
+	.form-select {
+		width: 200px;
+		padding: 8px 12px;
+		font-size: 14px;
+		border: 1px solid #E0E0E0;
+		border-radius: 8px;
+		background: white;
+		color: #525252;
+		cursor: pointer;
+		font-family: 'Helvetica Now Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	}
+
+	.form-select:focus {
+		outline: none;
+		border-color: #525252;
+	}
+
+	.routine-prompt-textarea {
+		min-height: 150px;
+		font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+		font-size: 13px;
+	}
+
+	.btn-test-prompt {
+		padding: 10px 20px;
+		font-size: 14px;
+		font-weight: 500;
+		background: white;
+		border: 1px solid #E0E0E0;
+		border-radius: 8px;
+		color: #525252;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.btn-test-prompt:hover {
+		background: #F4F4F4;
+		border-color: #525252;
 	}
 </style>
