@@ -29,65 +29,52 @@ export const POST: RequestHandler = async ({ request }) => {
 					role: 'user',
 					content: `You are a query classifier for a legal case management system. Analyze the user's query and classify it into ONE of these types:
 
-**1. SEARCH** - For direct entity lookups (HIGHEST PRIORITY):
-- Just a person's name with NO other context or question words
-- Just a case number
-- Simple "find X" or "show me X" where X is a specific person or case
-- NO analysis, filtering, or comparison words
+**1. SEARCH** - For looking up specific entities (people, cases):
+- Just a person's name (e.g., "Harold McLaughlin")
+- Just a case number (e.g., "CV-2025-00097")
+- Simple "find X" where X is a specific person, case, or entity
+- No filtering, counting, or list requests
 - Examples:
-  - "Harold McLaughlin" → SEARCH
-  - "John Smith" → SEARCH
-  - "CV-2025-00097" → SEARCH
-  - "find Sarah Johnson" → SEARCH
-  - "Smith" → SEARCH
-- Counter-examples (NOT search):
-  - "What cases is Harold McLaughlin involved in?" → GENERAL or SQL
-  - "How many cases does Smith have?" → SQL
-  - "Show me cases where Smith is involved" → SQL
+  - "Harold McLaughlin"
+  - "find Sarah Johnson"
+  - "CV-2025-00097"
 
-**2. SQL Query** - For queries that need structured data from the database:
-- Questions about counts, totals, sums, averages
-- Filtering or searching cases by specific criteria
-- Questions about billable hours, expenses, invoices
-- Date range queries (last 30 days, this month, etc.)
-- Aggregations and statistics
+**2. LIST** - For requesting filtered lists or collections of items:
+- Queries asking for "all", "list", "show me", with filtering criteria
+- Questions about cases matching specific conditions
+- Requests for projects, contacts, invoices, documents with filters
+- Questions with counts, totals, or aggregations
 - Examples:
+  - "Show me all active projects"
+  - "List cases filed in the last 30 days"
   - "Which cases have time entries exceeding 100 hours?"
   - "How many open Personal Injury cases are there?"
-  - "Show me all cases filed in the last 30 days"
-  - "What's the total billable amount for Project X?"
+  - "Show me unbilled invoices"
+  - "What projects is Harold McLaughlin working on?"
 
-**3. Document Search** - For full-text search through document content:
-- Questions explicitly asking to search document text
-- Questions about what documents mention or contain specific terms
-- Questions about finding pleadings, motions, contracts with specific content
+**3. CONVERSATIONAL** - For general questions, analysis, or chat:
+- Questions asking "what", "why", "how", "can you", "tell me about"
+- Requests for summaries, explanations, or analysis
+- Questions about capabilities or help
+- General conversation or clarifying questions
+- Multi-step reasoning queries
 - Examples:
-  - "Search documents for 'settlement agreement'"
-  - "Find all documents mentioning damages"
-  - "What pleadings reference the accident date?"
-
-**4. General Question** - For complex, analytical, or conversational queries:
-- Questions requiring multi-step reasoning
-- Questions asking for summaries or analysis
-- Questions combining data from multiple sources
-- Questions about case status, updates, or explanations
-- Examples:
+  - "What can you help me with?"
   - "Tell me about the Thompson case"
-  - "Summarize the documents in the Hahn case"
-  - "What's the status of my open cases?"
+  - "How do I create a new project?"
+  - "What's the status of my cases?"
+  - "Can you explain this data?"
 
 User's query: "${query}"
 
-IMPORTANT: If the query is JUST a name (like "Harold McLaughlin") with NO question words, it is a SEARCH, not SQL.
-
 Respond with ONLY a JSON object in this exact format:
 {
-  "type": "search" | "sql" | "document_search" | "general",
+  "type": "search" | "list" | "conversational",
   "confidence": 0.0-1.0,
   "reasoning": "Brief explanation of why this classification was chosen"
 }
 
-Be decisive. Choose the BEST fit. Prioritize SEARCH for simple name lookups.`
+Be decisive. Choose the BEST fit based on the user's intent.`
 				}
 			]
 		});
@@ -113,7 +100,7 @@ Be decisive. Choose the BEST fit. Prioritize SEARCH for simple name lookups.`
 		const result = JSON.parse(jsonText);
 
 		// Validate the response structure
-		if (!result.type || !['sql', 'document_search', 'general'].includes(result.type)) {
+		if (!result.type || !['search', 'list', 'conversational'].includes(result.type)) {
 			throw new Error('Invalid classification type from Claude');
 		}
 
@@ -139,11 +126,11 @@ Be decisive. Choose the BEST fit. Prioritize SEARCH for simple name lookups.`
 
 function getSuggestedAction(type: string): string {
 	switch (type) {
-		case 'sql':
-			return 'Querying case database...';
-		case 'document_search':
-			return 'Searching through documents...';
-		case 'general':
+		case 'search':
+			return 'Searching for entity...';
+		case 'list':
+			return 'Querying database for list...';
+		case 'conversational':
 			return 'Analyzing your question...';
 		default:
 			return 'Processing...';

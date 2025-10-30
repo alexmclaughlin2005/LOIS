@@ -13,6 +13,9 @@
 	"/api/classify-query": [
 		"src/routes/api/classify-query/+server.ts"
 	],
+	"/api/conversational-chat": [
+		"src/routes/api/conversational-chat/+server.ts"
+	],
 	"/api/execute-query": [
 		"src/routes/api/execute-query/+server.ts"
 	],

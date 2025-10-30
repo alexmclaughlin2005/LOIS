@@ -79,6 +79,7 @@
 	let currentResultsData: { title: string; subtitle: string; data: Array<Record<string, any>> } | null = null;
 	let showRoutinesLibrary = false;
 	let showSavedPrompts = false;
+	let showDataSourceMenu = false;
 
 	// Demo mode: track conversation state for hardcoded demo flow
 	let demoMode = false; // Set to false to use query router
@@ -1295,55 +1296,6 @@
 
 			<div class="chat-input-area">
 				<div class="input-wrapper">
-				<div class="data-source-toggle-container">
-					<div class="data-source-toggle">
-						<button
-							class="toggle-button"
-							class:active={dataSource === 'search'}
-							on:click={() => dataSource = 'search'}
-						>
-							<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-								<circle cx="6" cy="6" r="3.5" stroke="currentColor" stroke-width="1.5"/>
-								<path d="M8.5 8.5L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-							</svg>
-							Search
-						</button>
-						<button
-							class="toggle-button"
-							class:active={dataSource === 'documents'}
-							on:click={() => dataSource = 'documents'}
-						>
-							<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-								<rect x="2" y="2" width="10" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/>
-								<path d="M5 5H9M5 8H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-							</svg>
-							Documents
-						</button>
-						<button
-							class="toggle-button"
-							class:active={dataSource === 'snowflake'}
-							on:click={() => dataSource = 'snowflake'}
-						>
-							<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-								<path d="M2 3H12M2 7H12M2 11H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-								<circle cx="5" cy="3" r="1" fill="currentColor"/>
-								<circle cx="9" cy="7" r="1" fill="currentColor"/>
-								<circle cx="6" cy="11" r="1" fill="currentColor"/>
-							</svg>
-							Structured Data
-						</button>
-						<button
-							class="toggle-button"
-							class:active={dataSource === 'cortex'}
-							on:click={() => dataSource = 'cortex'}
-						>
-							<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-								<path d="M7 2L8.5 4.5L11 5L9 7L9.5 9.5L7 8.5L4.5 9.5L5 7L3 5L5.5 4.5L7 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-							</svg>
-							Cortex
-						</button>
-					</div>
-				</div>
 				<input
 					type="text"
 					class="chat-input"
@@ -1365,6 +1317,68 @@
 							</svg>
 							Saved Prompts
 						</button>
+						<div class="data-source-menu-container">
+							<button
+								class="input-button icon-only"
+								on:click={() => showDataSourceMenu = !showDataSourceMenu}
+								aria-label="Data source options"
+							>
+								<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+									<circle cx="7" cy="2.5" r="1.5"/>
+									<circle cx="7" cy="7" r="1.5"/>
+									<circle cx="7" cy="11.5" r="1.5"/>
+								</svg>
+							</button>
+							{#if showDataSourceMenu}
+								<div class="data-source-dropdown">
+									<button
+										class="dropdown-item"
+										class:active={dataSource === 'search'}
+										on:click={() => { dataSource = 'search'; showDataSourceMenu = false; }}
+									>
+										<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+											<circle cx="6" cy="6" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+											<path d="M8.5 8.5L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+										</svg>
+										Search
+									</button>
+									<button
+										class="dropdown-item"
+										class:active={dataSource === 'documents'}
+										on:click={() => { dataSource = 'documents'; showDataSourceMenu = false; }}
+									>
+										<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+											<rect x="2" y="2" width="10" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/>
+											<path d="M5 5H9M5 8H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+										</svg>
+										Documents
+									</button>
+									<button
+										class="dropdown-item"
+										class:active={dataSource === 'snowflake'}
+										on:click={() => { dataSource = 'snowflake'; showDataSourceMenu = false; }}
+									>
+										<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+											<path d="M2 3H12M2 7H12M2 11H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+											<circle cx="5" cy="3" r="1" fill="currentColor"/>
+											<circle cx="9" cy="7" r="1" fill="currentColor"/>
+											<circle cx="6" cy="11" r="1" fill="currentColor"/>
+										</svg>
+										Structured Data
+									</button>
+									<button
+										class="dropdown-item"
+										class:active={dataSource === 'cortex'}
+										on:click={() => { dataSource = 'cortex'; showDataSourceMenu = false; }}
+									>
+										<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+											<path d="M7 2L8.5 4.5L11 5L9 7L9.5 9.5L7 8.5L4.5 9.5L5 7L3 5L5.5 4.5L7 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+										</svg>
+										Cortex
+									</button>
+								</div>
+							{/if}
+						</div>
 					</div>
 					<div class="input-right">
 						<button class="icon-button-small" aria-label="Upload file">
@@ -1976,47 +1990,56 @@
 		background: #333;
 	}
 
-	/* Data Source Toggle */
-	.data-source-toggle-container {
-		display: flex;
-		justify-content: center;
-		margin-bottom: 16px;
+	/* Data Source Dropdown Menu */
+	.data-source-menu-container {
+		position: relative;
 	}
 
-	.data-source-toggle {
-		display: flex;
-		gap: 4px;
-		background: #f5f5f5;
-		padding: 4px;
+	.input-button.icon-only {
+		padding: 8px;
+		min-width: 36px;
+	}
+
+	.data-source-dropdown {
+		position: absolute;
+		bottom: 100%;
+		left: 0;
+		margin-bottom: 8px;
+		background: white;
+		border: 1px solid #E5E7EB;
 		border-radius: 8px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		min-width: 180px;
+		z-index: 1000;
+		overflow: hidden;
 	}
 
-	.toggle-button {
-		padding: 8px 16px;
+	.dropdown-item {
+		width: 100%;
+		padding: 10px 16px;
 		border: none;
-		background: transparent;
-		border-radius: 6px;
-		font-size: 13px;
+		background: white;
+		text-align: left;
+		font-size: 14px;
 		color: var(--color-text-secondary);
 		cursor: pointer;
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		transition: all 0.15s;
+		gap: 10px;
+		transition: background 0.15s;
 		font-weight: 500;
 	}
 
-	.toggle-button:hover {
-		background: rgba(255, 255, 255, 0.5);
+	.dropdown-item:hover {
+		background: #F9FAFB;
 	}
 
-	.toggle-button.active {
-		background: white;
+	.dropdown-item.active {
+		background: #F3F4F6;
 		color: var(--color-text-primary);
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 	}
 
-	.toggle-button svg {
+	.dropdown-item svg {
 		flex-shrink: 0;
 	}
 
