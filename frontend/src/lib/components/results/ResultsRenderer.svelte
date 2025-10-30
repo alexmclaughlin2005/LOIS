@@ -246,23 +246,15 @@
 				<!-- Projects -->
 				{#if grouped.projects.length > 0}
 					<div class="result-section">
-						{#if showTabs}
-							<h3 class="section-title">Cases ({grouped.projects.length})</h3>
-						{/if}
+						<div class="section-header">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="section-icon">
+								<rect x="2" y="3" width="12" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/>
+								<path d="M5 1V3M11 1V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+							</svg>
+							<h3 class="section-title">Projects ({grouped.projects.length})</h3>
+						</div>
 						{#each grouped.projects as project}
 							<ProjectCard {project} />
-						{/each}
-					</div>
-				{/if}
-
-				<!-- Contacts -->
-				{#if grouped.contacts.length > 0}
-					<div class="result-section">
-						{#if showTabs}
-							<h3 class="section-title">Contacts ({grouped.contacts.length})</h3>
-						{/if}
-						{#each grouped.contacts as contact}
-							<ContactCard {contact} />
 						{/each}
 					</div>
 				{/if}
@@ -270,11 +262,31 @@
 				<!-- Documents -->
 				{#if grouped.documents.length > 0}
 					<div class="result-section">
-						{#if showTabs}
+						<div class="section-header">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="section-icon">
+								<path d="M3 2H10L13 5V14H3V2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+								<path d="M10 2V5H13" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+							</svg>
 							<h3 class="section-title">Documents ({grouped.documents.length})</h3>
-						{/if}
+						</div>
 						{#each grouped.documents as document}
 							<DocumentCard {document} />
+						{/each}
+					</div>
+				{/if}
+
+				<!-- Contacts -->
+				{#if grouped.contacts.length > 0}
+					<div class="result-section">
+						<div class="section-header">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="section-icon">
+								<circle cx="8" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+								<path d="M3 14C3 11.7909 5.23858 10 8 10C10.7614 10 13 11.7909 13 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+							</svg>
+							<h3 class="section-title">Contacts ({grouped.contacts.length})</h3>
+						</div>
+						{#each grouped.contacts as contact}
+							<ContactCard {contact} />
 						{/each}
 					</div>
 				{/if}
@@ -282,7 +294,12 @@
 				<!-- Unknown (fallback to generic display) -->
 				{#if grouped.unknown.length > 0}
 					<div class="result-section">
-						<h3 class="section-title">Other Results ({grouped.unknown.length})</h3>
+						<div class="section-header">
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="section-icon">
+								<rect x="2" y="2" width="12" height="12" rx="1" stroke="currentColor" stroke-width="1.5"/>
+							</svg>
+							<h3 class="section-title">Other Results ({grouped.unknown.length})</h3>
+						</div>
 						{#each grouped.unknown as item}
 							<div class="generic-card">
 								<pre>{JSON.stringify(item, null, 2)}</pre>
@@ -403,16 +420,28 @@
 	}
 
 	.result-section {
-		margin-bottom: 24px;
+		margin-bottom: 32px;
+	}
+
+	.section-header {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 16px;
+		padding-bottom: 12px;
+		border-bottom: 1px solid #E5E7EB;
+	}
+
+	.section-icon {
+		color: #666;
+		flex-shrink: 0;
 	}
 
 	.section-title {
-		font-size: 16px;
+		font-size: 15px;
 		font-weight: 600;
 		color: var(--color-text-primary, #161616);
-		margin: 0 0 16px 0;
-		padding-bottom: 8px;
-		border-bottom: 1px solid #F5F5F5;
+		margin: 0;
 	}
 
 	/* Generic Card (for unknown entity types) */

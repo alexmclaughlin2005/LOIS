@@ -154,11 +154,10 @@
 			</div>
 		</div>
 		<div class="header-right">
-			<button class="action-button" aria-label="More actions" title="More actions">
-				<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-					<circle cx="8" cy="3" r="1.5" fill="currentColor"/>
-					<circle cx="8" cy="8" r="1.5" fill="currentColor"/>
-					<circle cx="8" cy="13" r="1.5" fill="currentColor"/>
+			<button class="action-button open-tab-button" aria-label="Open in new tab" title="Open in new tab">
+				<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+					<path d="M9 2H12V5M12 2L6 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+					<path d="M12 8V12H2V2H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
 				</svg>
 			</button>
 		</div>
@@ -314,7 +313,7 @@
 		padding: 0;
 		border: none;
 		background: transparent;
-		border-radius: 4px;
+		border-radius: 6px;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
@@ -324,8 +323,13 @@
 	}
 
 	.action-button:hover {
-		background: #F5F5F5;
+		background: #F3F4F6;
 		color: var(--color-text-primary, #161616);
+	}
+
+	.open-tab-button:hover {
+		background: #3B82F6;
+		color: white;
 	}
 
 	/* Body */
