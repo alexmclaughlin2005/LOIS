@@ -70,6 +70,7 @@
 	let isStreaming = false;
 	let isStreamingJSON = false; // Flag for when we're streaming JSON
 	let isProcessingData = false; // Flag for when we detect JSON and are processing it
+	let chatContentElement: HTMLElement | null = null; // Reference to chat content container for auto-scroll
 
 	// Conversation context tracking
 	let lastQueryResult: any = null;
@@ -104,6 +105,31 @@
 
 	// Data source for queries
 	let dataSource: 'documents' | 'snowflake' | 'cortex' | 'search' = 'documents';
+
+	// Auto-scroll to bottom when messages change
+	function scrollToBottom() {
+		if (chatContentElement) {
+			// Use setTimeout to ensure DOM has updated
+			setTimeout(() => {
+				if (chatContentElement) {
+					chatContentElement.scrollTo({
+						top: chatContentElement.scrollHeight,
+						behavior: 'smooth'
+					});
+				}
+			}, 100);
+		}
+	}
+
+	// Watch for messages changes and auto-scroll
+	$: if (messages.length > 0) {
+		scrollToBottom();
+	}
+
+	// Also scroll when streaming or thinking state changes
+	$: if (isThinking || isStreaming) {
+		scrollToBottom();
+	}
 
 	// Test database connection on mount
 	onMount(async () => {
@@ -1374,7 +1400,7 @@
 				</button>
 			</header>
 
-			<div class="chat-content">
+			<div class="chat-content" bind:this={chatContentElement}>
 				<div class="messages">
 					{#each messages as message}
 						{#if message.role === 'user'}
