@@ -8,15 +8,16 @@
 	let searchValue = '';
 	let showSavedPrompts = false;
 	let showRoutinesLibrary = false;
-	let dataSource: 'documents' | 'snowflake' | 'cortex' = 'documents'; // Default to documents
+	let showDataSourceMenu = false;
+	let dataSource: 'search' | 'documents' | 'snowflake' | 'cortex' = 'search'; // Default to search (intelligent routing)
 
 	// Get recent routines from DEFAULT_ROUTINES
 	const recentRoutines = DEFAULT_ROUTINES.slice(0, 3);
 
 	function handleSearch() {
 		if (searchValue.trim()) {
-			// Navigate to chat with the query and data source parameter
-			goto(`/chat?q=${encodeURIComponent(searchValue.trim())}&source=${dataSource}`);
+			// Navigate to chat with the query (intelligent routing will classify)
+			goto(`/chat?q=${encodeURIComponent(searchValue.trim())}`);
 		}
 	}
 
@@ -159,41 +160,67 @@
 					/>
 					<div class="input-controls">
 						<div class="input-left">
-							<div class="data-source-toggle">
+							<div class="data-source-menu-container">
 								<button
-									class="toggle-button"
-									class:active={dataSource === 'documents'}
-									on:click={() => dataSource = 'documents'}
+									class="input-button icon-only"
+									on:click={() => showDataSourceMenu = !showDataSourceMenu}
+									aria-label="Data source options"
 								>
-									<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-										<rect x="2" y="2" width="10" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/>
-										<path d="M5 5H9M5 8H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+									<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+										<circle cx="7" cy="2.5" r="1.5"/>
+										<circle cx="7" cy="7" r="1.5"/>
+										<circle cx="7" cy="11.5" r="1.5"/>
 									</svg>
-									Documents
 								</button>
-								<button
-									class="toggle-button"
-									class:active={dataSource === 'snowflake'}
-									on:click={() => dataSource = 'snowflake'}
-								>
-									<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-										<path d="M2 3H12M2 7H12M2 11H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-										<circle cx="5" cy="3" r="1" fill="currentColor"/>
-										<circle cx="9" cy="7" r="1" fill="currentColor"/>
-										<circle cx="6" cy="11" r="1" fill="currentColor"/>
-									</svg>
-									Structured Data
-								</button>
-								<button
-									class="toggle-button"
-									class:active={dataSource === 'cortex'}
-									on:click={() => dataSource = 'cortex'}
-								>
-									<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-										<path d="M7 2L8.5 4.5L11 5L9 7L9.5 9.5L7 8.5L4.5 9.5L5 7L3 5L5.5 4.5L7 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-									</svg>
-									Cortex
-								</button>
+								{#if showDataSourceMenu}
+									<div class="data-source-dropdown" on:click|stopPropagation>
+										<button
+											class="dropdown-item"
+											class:active={dataSource === 'search'}
+											on:click={() => { dataSource = 'search'; showDataSourceMenu = false; }}
+										>
+											<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+												<circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/>
+												<path d="M9 9L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+											</svg>
+											Search
+										</button>
+										<button
+											class="dropdown-item"
+											class:active={dataSource === 'documents'}
+											on:click={() => { dataSource = 'documents'; showDataSourceMenu = false; }}
+										>
+											<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+												<rect x="2" y="2" width="10" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/>
+												<path d="M5 5H9M5 8H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+											</svg>
+											Documents
+										</button>
+										<button
+											class="dropdown-item"
+											class:active={dataSource === 'snowflake'}
+											on:click={() => { dataSource = 'snowflake'; showDataSourceMenu = false; }}
+										>
+											<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+												<path d="M2 3H12M2 7H12M2 11H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+												<circle cx="5" cy="3" r="1" fill="currentColor"/>
+												<circle cx="9" cy="7" r="1" fill="currentColor"/>
+												<circle cx="6" cy="11" r="1" fill="currentColor"/>
+											</svg>
+											Structured Data
+										</button>
+										<button
+											class="dropdown-item"
+											class:active={dataSource === 'cortex'}
+											on:click={() => { dataSource = 'cortex'; showDataSourceMenu = false; }}
+										>
+											<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+												<path d="M7 2L8.5 4.5L11 5L9 7L9.5 9.5L7 8.5L4.5 9.5L5 7L3 5L5.5 4.5L7 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+											</svg>
+											Cortex
+										</button>
+									</div>
+								{/if}
 							</div>
 							<button class="input-button" on:click={handleOpenSavedPrompts}>
 								<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
@@ -645,41 +672,61 @@
 		color: var(--color-text-primary);
 	}
 
-	.data-source-toggle {
-		display: flex;
-		gap: 4px;
-		background: #f5f5f5;
-		padding: 4px;
-		border-radius: 8px;
+	/* Data Source Dropdown Menu */
+	.data-source-menu-container {
+		position: relative;
 	}
 
-	.toggle-button {
-		padding: 6px 12px;
-		border: none;
-		background: transparent;
-		border-radius: 6px;
-		font-size: 13px;
-		color: var(--color-text-secondary);
-		cursor: pointer;
+	.input-button.icon-only {
+		padding: 8px;
+		min-width: 36px;
+	}
+
+	.data-source-dropdown {
+		position: absolute;
+		bottom: 100%;
+		left: 0;
+		margin-bottom: 8px;
+		background: white;
+		border: 1px solid #E5E7EB;
+		border-radius: 8px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		min-width: 180px;
+		z-index: 1000;
+		overflow: hidden;
+	}
+
+	.dropdown-item {
+		width: 100%;
+		padding: 10px 16px;
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		transition: all 0.15s;
-		font-weight: 500;
-	}
-
-	.toggle-button:hover {
-		background: rgba(255, 255, 255, 0.5);
-	}
-
-	.toggle-button.active {
+		gap: 10px;
 		background: white;
+		border: none;
+		cursor: pointer;
+		font-size: 14px;
 		color: var(--color-text-primary);
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+		transition: background 0.15s;
+		text-align: left;
 	}
 
-	.toggle-button svg {
+	.dropdown-item:hover {
+		background: #F9FAFB;
+	}
+
+	.dropdown-item.active {
+		background: #F3F4F6;
+		color: var(--color-text-primary);
+	}
+
+	.dropdown-item svg {
 		flex-shrink: 0;
+		color: var(--color-text-secondary);
+	}
+
+	.dropdown-item.active svg {
+		color: var(--color-text-primary);
 	}
 
 	@media (max-width: 768px) {
